@@ -1,6 +1,20 @@
 package main
 
-const (
+const ( // message headers
+	hdr0 = 0x55 // first byte of any message
+	hdr1 = 0xAA // second byte of any message
+	hdr2 = 0x00 // third byte of any message
+	// messages sent to the mainboard
+	cmdVn = 0x60 // fourth byte of vanilla command
+	cmdAc = 0x61 // fourth byte of command that expects acknoledgement (sent back in a mbCAc message)
+	dtaRq = 0x62 // fourth byte of a data request (sent back in a dtaRq message)
+	// messages sent by the mainboard
+	mbMsg = 0x6E // message sent without request
+	mbCAc = 0x71 // confirmation of a cmdAc command
+	mbDRq = 0x72 // response to a dtaRq data request
+)
+
+const ( // principal topics of mainboard operation
 	tgMod = 0x00 // tone generator mode (sound/pianist)
 	kbSpl = 0x01 // keyboard splitting
 	instr = 0x02 // sound-mode instrument
@@ -31,7 +45,18 @@ const (
 	commu = 0x7F // communication setup
 )
 
-const ( // (0x02) sound-mode instruments
+const ( // (tgMod, 0x00) tone generator modes
+	// tgMod = 0x00  happens to be equal to the principal topic
+	// submodes
+	tgSnd = 0x00 // sound mode
+	tgPia = 0x01 // pianist mode
+)
+
+const ( // (kbSpl, 0x01) keyboard splitting
+	kbSpM = 0x00 // single, dual, split, 4hands
+)
+
+const ( // (instr, 0x02) sound-mode instruments
 	iSing = 0x00 // single instrument
 	iDua1 = 0x01 // 1st dual instrument
 	iDua2 = 0x02 // 2nd dual instrument
@@ -41,28 +66,28 @@ const ( // (0x02) sound-mode instruments
 	i4Hd2 = 0x06 // 2nd 4hands instrument
 )
 
-const ( // (0x04) pianist mode settings
+const ( // (pmSet, 0x04) pianist mode settings
 	pmRen = 0x00 // rendering character
 	pmRes = 0x01 // resonance depth
 	pmAmb = 0x02 // ambience type
 	pmAmD = 0x03 // ambience depth
 )
 
-const ( // (0x08) reverb settings
+const ( // (revrb, 0x08) reverb settings
 	rOnOf = 0x00 // reverb on/off
 	rType = 0x01 // reverb type
 	rDpth = 0x02 // reverb depth
 	rTime = 0x03 // reverb time
 )
 
-const ( // (0x09) effects settings
+const ( // (effct, 0x09) effects settings
 	eOnOf = 0x00 // effects on/off
 	eType = 0x01 // effects type
 	ePar1 = 0x02 // effects parameter 1
 	ePar2 = 0x03 // effects parameter 2
 )
 
-const ( // (0x0A) metronome settings
+const ( // (metro, 0x0A) metronome settings
 	mOnOf = 0x00 // metronome on/off
 	mTmpo = 0x01 // tempo
 	mSign = 0x02 // time signature/rhythm pattern
@@ -70,7 +95,7 @@ const ( // (0x0A) metronome settings
 	mBeat = 0x08 // metronome beat count
 )
 
-const ( // (0x0F) registrations
+const ( // (regst, 0x0F) registrations
 	rgOpn = 0x00 // open registrations
 	rgLoa = 0x01 // registration to load
 	rgSto = 0x02 // registration to store to
@@ -78,7 +103,7 @@ const ( // (0x0F) registrations
 	rgMod = 0x50 // mode of registration (sound/pianist)
 )
 
-const ( // (0x10) mainF
+const ( // (mainF, 0x10) mainF
 	mTran = 0x00 // transpose
 	mTone = 0x02 // tone control
 	mSpkV = 0x03 // speaker volume
@@ -94,7 +119,7 @@ const ( // (0x10) mainF
 	mUTon = 0x41 // user tone control
 )
 
-const ( // (0x11) virtual technician settings
+const ( // (vTech, 0x11) virtual technician settings
 	tCurv = 0x00 // touch curve
 	voicg = 0x01 // voicing
 	dmpRs = 0x02 // damper resonance
@@ -121,13 +146,13 @@ const ( // (0x11) virtual technician settings
 	uKeyV = 0x44 // user key volume
 )
 
-const ( // (0x12) headphones properties
+const ( // (hPhon, 0x12) headphones properties
 	phShs = 0x00 // SHS mode
 	phTyp = 0x01 // phones type
 	phVol = 0x02 // phones volume
 )
 
-const ( // (0x13) MIDI
+const ( // (midiI, 0x13) MIDI
 	miCha = 0x00 // midi channel
 	miPgC = 0x01 // pgm change number
 	miLoc = 0x02 // local control
@@ -136,26 +161,56 @@ const ( // (0x13) MIDI
 	miMut = 0x40 // channel mute
 )
 
-const ( // (0x14) file operations
+const ( // (files, 0x14) file operations
+	fUsNu = 0x00 // file number to load from USB
 	fMvNu = 0x09 // file number to rename
 	fRmNu = 0x0A // file number to delete
 	fPgrs = 0x2D // progress during USB formatting
+	fUsNm = 0x40 // directory entry (name part) for file to load from USB
 	fMvNm = 0x49 // directory entry (name part) for file to rename
 	fRmNm = 0x4A // directory entry (name part) for file to delete
+	fUsEx = 0x50 // directory entry (extension part) for file to load from USB
 	fMvEx = 0x59 // directory entry (extension part) for file to rename
 	fRmEx = 0x5A // directory entry (extension part) for file to delete
+	fUsCf = 0x60 // load from USB
+	fSvKs = 0x64 // save as .KSO file
+	fSvSm = 0x65 // save as .SMF file
 	fName = 0x69 // new filename
 	fRmCf = 0x6A // delete file
 	fFmat = 0x6B // format USB
 )
 
-const ( // (0x16) bluetooth
+const ( // (bluet, 0x16) bluetooth
 	btAud = 0x00 // bluetooth audio
 	btAuV = 0x01 // bluetooth audio volume
 	btMid = 0x02 // bluetooth MIDI
 )
 
-const ( // (0x60) service
+const ( // (smRec, 0x20) sound mode recorder
+	smSel = 0x00 // select sound mode song
+	smPlP = 0x01 // part(s) to play
+	smRcP = 0x02 // part to record to
+	smEra = 0x40 // sound mode song or song parts to erase
+	smPEm = 0x60 // whether part of sound mode song contains a recording
+	smEmp = 0x61 // whether sound mode song contains a recording
+)
+
+const ( // (pmRec, 0x21) pianist mode recorder
+	pmSel = 0x00 // select pianist mode song
+	pmEra = 0x40 // pianist mode song number to erase
+	pmEmp = 0x61 // whether pianist mode song contains a recording
+)
+
+const ( // (auRec, 0x22) USB audio recorder
+	auSel = 0x00 // select USB song
+	//    = 0x20
+	auTyp = 0x22 // file type to write
+	auPNm = 0x40 // file name to play
+	auPEx = 0x41 // extension of file name to play
+	auNam = 0x50 // file name to write
+)
+
+const ( // (servi, 0x60) service
 	srM00 = 0x00 // service mode 00
 	srM01 = 0x01 // service mode 01
 	srM02 = 0x02 // service mode 02
@@ -173,15 +228,40 @@ const ( // (0x60) service
 	srM14 = 0x0E // service mode 14
 )
 
-const ( // (0x64) update
+const ( // (updat, 0x64) update
 	upErr = 0x00 // error: no USB
 	upNow = 0x02 // update now
 	upLtr = 0x03 // update later
 )
 
-const ( // (0x70) user actions on hardware
+const ( // (hardw, 0x70) user actions on hardware
 	hwKey = 0x00 // piano key
 	hwUsb = 0x01 // USB stick
 	hwHPh = 0x02 // headphones
 	hw_03 = 0x03 // ???
+)
+
+const ( // (playr, 0x71) player
+	plDur = 0x00 // duration
+	//    = 0x01		// bar/second count
+	//    = 0x02
+	plBrC = 0x03 // bar count
+	plBea = 0x04 // beat
+	plVol = 0x07 // playback volume
+	plPla = 0x10 // start playing
+	plRec = 0x11 // start recording
+	plSto = 0x12 // stop recorder/player
+	plA_B = 0x13 // A-B repeat mode
+	plSby = 0x14 // put recorder into standby
+	plPbM = 0x18 // playback mode
+)
+
+const ( // (rpFce, 0x7E) recorder/player face
+	rpClo = 0x00 // close player/recorder
+	rpInt = 0x02 // internal recorder/player
+	rpUsb = 0x03 // USB recorder/player
+	rpDem = 0x05 // demo songs
+	rpLes = 0x07 // lesson songs
+	rpCon = 0x08 // concert magic
+	rpPno = 0x09 // piano music
 )

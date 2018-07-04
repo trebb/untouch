@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"log"
 )
 
 // func input(){
@@ -32,14 +32,27 @@ func input() {
 			issueCmd(regst, rgSto, 0x0, byte(numarg))
 		case "openreg": // close(0), open(1)
 			issueCmd(regst, rgOpn, 0x0, byte(numarg))
+		case "m": // aggregate mode: pianist, all sound mode splits
+			if mbStateItem("toneGeneratorMode") == tgSnd {
+				fmt.Println("current keyboard split mode is", kbMode[mbStateItem("keyboardMode")])
+			} else {
+				fmt.Println("current keyboard split mode is Pianist mode")
+			}
+			k := getPnoKey()
+			if k == 1 { // pianist mode
+				issueCmd(tgMod, tgMod, 0x0, tgPia)
+			} else if k <= 5 { // sound mode
+				issueCmd(tgMod, tgMod, 0x0, tgSnd)
+				issueCmd(kbSpl, kbSpM, 0x0, k-2) // KB split mode 0..3
+			} else {
+				fmt.Println(k, "is not a mode")
+			}
 		case "mode": // sound(0), pianist(1)
-			toMb <- append(cmdVnHead, 0x1, 0x0, 0x0, 0x0, 0x1, byte(numarg))
-		case "kbmode": // single, dual, split, 4hands
-			issueCmd(kbSpl, 0x1, 0x0, byte(numarg))
+			issueCmd(tgMod, tgMod, 0x0, byte(numarg))
 		case "metro":
 			issueCmd(metro, mOnOf, 0x0, byte(numarg))
 		case "metrovol":
-			issueCmd(metro, mVolu, byte(numarg))
+			issueCmd(metro, mVolu, 0x0, byte(numarg))
 		case "tempo":
 			issueCmd(metro, mTmpo, 0x0, uint16(numarg))
 		case "timesig":
@@ -52,6 +65,74 @@ func input() {
 			issueCmd(pmSet, pmAmb, 0x0, byte(numarg))
 		case "ambiencedepth":
 			issueCmd(pmSet, pmAmD, 0x0, byte(numarg))
+		case "s": // aggregate sound: rendering of pianist mode or first/only sound of sound mode
+			switch mbStateItem("toneGeneratorMode") {
+			case tgPia:
+				fmt.Println("current sound (pianist mode) is",
+					renderingCharacter[mbStateItem("renderingCharacter")])
+				k := getPnoKey()
+				if k <= 10 {
+					issueCmd(pmSet, pmRen, 0x0, k-1)
+				} else {
+					fmt.Println(k, "is not a pianist mode sound")
+				}
+			case tgSnd:
+				switch mbStateItem("keyboardMode") {
+				case 0: // single
+					fmt.Println("current single sound (sound mode) is",
+						instrumentSound[mbStateItem("single")])
+					k := getPnoKey()
+					issueCmd(instr, iSing, 0x0, k-1)
+				case 1: // dual
+					fmt.Println("current first dual sound (sound mode) is",
+						instrumentSound[mbStateItem("dual1")])
+					k := getPnoKey()
+					issueCmd(instr, iDua1, 0x0, k-1)
+				case 2: // split
+					fmt.Println("current first split sound (sound mode) is",
+						instrumentSound[mbStateItem("split1")])
+					k := getPnoKey()
+					issueCmd(instr, iSpl1, 0x0, k-1)
+				case 3: // 4hands
+					fmt.Println("current first 4hands sound (sound mode) is",
+						instrumentSound[mbStateItem("4hands1")])
+					k := getPnoKey()
+					issueCmd(instr, i4Hd1, 0x0, k-1)
+				default:
+					log.Print("bad keyboardMode")
+				}
+			default:
+				log.Print("bad toneGeneratorMode")
+			}
+		case "s2": // aggregate sound: second sound of sound mode
+			switch mbState["toneGeneratorMode"] {
+			case tgPia:
+				fmt.Println("pianist mode has no second sound")
+			case tgSnd:
+				switch mbStateItem("keyboardMode") {
+				case 0: // single
+					fmt.Println("single has no second sound")
+				case 1: // dual
+					fmt.Println("current second dual sound (sound mode) is",
+						instrumentSound[mbStateItem("dual2")])
+					k := getPnoKey()
+					issueCmd(instr, iDua2, 0x0, k-1)
+				case 2: // split
+					fmt.Println("current second split sound (sound mode) is",
+						instrumentSound[mbStateItem("split2")])
+					k := getPnoKey()
+					issueCmd(instr, iSpl2, 0x0, k-1)
+				case 3: // 4hands
+					fmt.Println("current second 4hands sound (sound mode) is",
+						instrumentSound[mbStateItem("4hands2")])
+					k := getPnoKey()
+					issueCmd(instr, i4Hd2, 0x0, k-1)
+				default:
+					log.Print("bad keyboardMode")
+				}
+			default:
+				log.Print("bad toneGeneratorMode")
+			}
 		case "sound":
 			issueCmd(instr, iSing, 0x0, byte(numarg))
 		case "sounddual1":
@@ -66,8 +147,8 @@ func input() {
 			issueCmd(instr, i4Hd1, 0x0, byte(numarg))
 		case "sound4hd2":
 			issueCmd(instr, i4Hd2, 0x0, byte(numarg))
-		case "splitting":
-			issueCmd(kbSpl, 0x0, 0x0, byte(numarg))
+		case "kbmode": // single, dual, split, 4hands
+			issueCmd(kbSpl, kbSpM, 0x0, byte(numarg))
 		case "reverb":
 			issueCmd(revrb, rOnOf, 0x0, byte(numarg))
 		case "reverbtype":
@@ -88,77 +169,77 @@ func input() {
 		case "sel": // 0..3
 			// issueCmd(0x7E, 0x2, 0x0, 0x0)
 			issueDtaRq(
-				request{0x21, 0x61, byte(numarg), 0x1, 0x0})
-			issueCmd(0x21, 0x0, 0x0, byte(numarg))
+				request{pmRec, pmEmp, byte(numarg), 0x1, 0x0})
+			issueCmd(pmRec, pmSel, 0x0, byte(numarg))
 		case "sels": // 0..9
-			issueCmd(0x20, 0x0, 0x0, byte(numarg))
+			issueCmd(smRec, smSel, 0x0, byte(numarg))
 		case "playpart": // 0..2
-			issueCmd(0x20, 0x1, 0x0, byte(numarg))
+			issueCmd(smRec, smPlP, 0x0, byte(numarg))
 		case "recpart":
-			issueCmd(0x20, 0x2, 0x0, byte(numarg))
+			issueCmd(smRec, smRcP, 0x0, byte(numarg))
 		case "selusb":
-			issueCmd(0x22, 0x0, 0x0, byte(numarg))
+			issueCmd(auRec, auSel, 0x0, byte(numarg))
 		case "rec":
-			issueCmd(0x71, 0x14, 0x0, 0x1)
+			issueCmd(playr, plSby, 0x0, 0x1)
 		case "recusb":
-			issueCmd(0x7E, 0x3, 0x0, 0x0)
-			issueCmd(0x71, 0x14, 0x0, 0x1)
-			issueCmd(0x22, 0x20, 0x0, 0x0)
+			issueCmd(rpFce, rpUsb, 0x0, 0x0)
+			issueCmd(playr, plSby, 0x0, 0x1)
+			issueCmd(auRec, 0x20, 0x0, 0x0)
 		case "rec2":
-			issueCmd(0x71, 0x11, 0x0, 0x0)
+			issueCmd(playr, plRec, 0x0, 0x0)
 		case "stop":
-			issueCmd(0x71, 0x12, 0x0, 0x0)
+			issueCmd(playr, plSto, 0x0, 0x0)
 		case "play":
-			issueCmdAc(0x71, 0x10, 0x0, 0x0)
+			issueCmdAc(playr, plPla, 0x0, 0x0)
 		case "save": //  0,1 MP3,WAV; name
-			issueCmd(0x22, 0x22, 0x0, byte(numarg))
-			issueCmdAc(0x22, 0x50, 0xFF, textarg2)
+			issueCmd(auRec, auTyp, 0x0, byte(numarg))
+			issueCmdAc(auRec, auNam, 0xFF, textarg2)
 		case "savekso":
-			issueCmdAc(0x14, 0x64, byte(numarg), textarg2)
+			issueCmdAc(files, fSvKs, byte(numarg), textarg2)
 		case "savesmf":
-			issueCmdAc(0x14, 0x65, byte(numarg), textarg2)
+			issueCmdAc(files, fSvSm, byte(numarg), textarg2)
 		case "erase": // 0..2
-			issueCmdAc(0x21, 0x40, byte(numarg))
+			issueCmdAc(pmRec, pmEra, byte(numarg))
 		case "erases": // 0..9; 0..2  (internal song; parts set)
-			issueCmdAc(0x20, 0x40, byte(numarg), byte(numarg2))
+			issueCmdAc(smRec, smEra, byte(numarg), byte(numarg2))
 		case "eraseall":
-			issueCmdAc(0x21, 0x40, 0xFF)
+			issueCmdAc(pmRec, pmEra, 0xFF)
 		case "erasealls":
-			issueCmdAc(0x20, 0x40, 0xFF, 0x2)
+			issueCmdAc(smRec, smEra, 0xFF, 0x2)
 		case "ls":
 			for i := 0; i < 0x3; i++ {
 				issueDtaRq(
-					request{0x21, 0x61, byte(i), 0x0})
+					request{pmRec, pmEmp, byte(i), 0x0})
 			}
 			for i := 0; i < 0xA; i++ {
 				issueDtaRq(
-					request{0x20, 0x61, byte(i), 0x0})
+					request{smRec, smEmp, byte(i), 0x0})
 			}
 		case "loadfromusb1":
 			issueDtaRq(
-				request{0x14, 0x40, 0xFF, 0x0})
+				request{files, fUsNm, 0xFF, 0x0})
 		case "loadfromusb2": // sound song, usb song
 			// doesn't seem to work for empty sound songs
-			issueCmd(files, 0x0, byte(numarg), byte(numarg2))
-			issueCmdAc(files, 0x60, 0x0)
+			issueCmd(files, fUsNu, byte(numarg), byte(numarg2))
+			issueCmdAc(files, fUsCf, 0x0)
 		case "usbmempl":
 			issueDtaRq(
-				request{0x22, 0x40, 0xFF, 0x0})
+				request{auRec, fUsNm, 0xFF, 0x0})
 
 		case "builtinsong": // song list (0, 2, 3, 5, 7, 9), song number
 			issueCmd(biSng, 0x40, byte(numarg), byte(numarg2))
 		case "soundsong":
-			issueDtaRq(request{smRec, 0x61, byte(numarg), 0x1, 0x0})
-			issueCmd(smRec, 0x0, 0x0, byte(numarg))
+			issueDtaRq(request{smRec, smEmp, byte(numarg), 0x1, 0x0})
+			issueCmd(smRec, smSel, 0x0, byte(numarg))
 		case "pianistsong":
-			issueDtaRq(request{pmRec, 0x61, byte(numarg), 0x1, 0x0})
-			issueCmd(pmRec, 0x0, 0x0, byte(numarg))
+			issueDtaRq(request{pmRec, pmEmp, byte(numarg), 0x1, 0x0})
+			issueCmd(pmRec, pmSel, 0x0, byte(numarg))
 		case "audiorecname":
-			issueCmdAc(auRec, 0x50, 0xFF, textarg)
+			issueCmdAc(auRec, auNam, 0xFF, textarg)
 		case "playbackmode":
-			issueCmd(playr, 0x18, 0x0, byte(numarg))
+			issueCmd(playr, plPbM, 0x0, byte(numarg))
 		case "playbackvol":
-			issueCmd(playr, 0x7, 0x0, byte(numarg))
+			issueCmd(playr, plVol, 0x0, byte(numarg))
 		case "transpose":
 			issueCmd(mainF, mTran, 0x0, byte(signumarg))
 		case "btmidi":
@@ -177,7 +258,9 @@ func input() {
 		case "factory":
 			issueCmdAc(mainF, mFact, 0x0, 0x0)
 		case "key":
-			issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
+			go func() {
+				fmt.Println("piano key", getPnoKey(), "pressed")
+			}()
 		case "instrparams":
 			// pianist mode and sound mode parameters
 			issueDtaRq(
@@ -283,39 +366,6 @@ func input() {
 
 		default:
 			fmt.Println("???", cmd, arg)
-		}
-	}
-}
-
-func parse() {
-	for {
-		hdr := []byte{}
-		msg := msg{}
-		var msgIndex int
-		for msgIndex = -1; msgIndex < 0; msgIndex = bytes.Index(hdr, []byte{0x55, 0xAA, 0x0}) {
-			b := <-rawBytes
-			hdr = append(hdr, b)
-		}
-		if msgIndex > 0 {
-			notImpl(hdr[:msgIndex], "Headless rubbish")
-		}
-		for i, b := range hdr[msgIndex:] {
-			msg[i] = b
-		}
-		for i := 3; i < 7; i++ {
-			msg[i] = <-rawBytes
-		}
-		if a, ok := actions[msg]; ok {
-			var i int
-			for i = 7; i < 9; i++ {
-				msg[i] = <-rawBytes
-			}
-			for k := 0; k < int(msg[8]); k++ {
-				msg[i+k] = <-rawBytes
-			}
-			a(msg)
-		} else {
-			notImpl(msg[:7])
 		}
 	}
 }

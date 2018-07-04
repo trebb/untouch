@@ -1,6 +1,16 @@
 package main
 
 var (
+	mode = [...]string{
+		"Sound mode",
+		"Pianist mode",
+	}
+	kbMode = [...]string{
+		"Single",
+		"Dual",
+		"Split",
+		"4Hands",
+	}
 	renderingCharacter = [...]string{
 		"Classic",
 		"Romantic",
@@ -22,7 +32,6 @@ var (
 		"Jazz Old School",
 		"Warm Grand",
 		"Warm Grand 2",
-		"Standard Grand",
 		"Standard Grand",
 		// Piano 2
 		"Pop Grand",
@@ -338,6 +347,14 @@ var (
 		"Mid Cut",
 		"User",
 	}
+	userToneControl = [...]string{
+		"low dB",
+		"mid-low freqency",
+		"mid-low dB",
+		"mid-high frequency",
+		"mid-high dB",
+		"high frequency",
+	}		
 	speakerVolume = [...]string{
 		"Low",
 		"Normal",

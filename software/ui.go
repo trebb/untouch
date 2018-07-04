@@ -18,13 +18,14 @@ var (
 	rawBytes    = make(chan byte, 1000)
 	notImplMsgs = make(chan string, 100)
 	toMb        = make(chan []byte, 100)
+	pnoKeys     = make(chan uint8, 100)
 )
 
 func main() {
 	flag.Parse()
 	s, err := serial.OpenPort(&serial.Config{Name: *mbPort, Baud: 115200})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	go parse()
 	go rxd(*s)
@@ -45,7 +46,7 @@ func rxd(port serial.Port) {
 	for {
 		_, err := port.Read(buf)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 		rawBytes <- buf[0]
 	}
@@ -56,15 +57,15 @@ func txd(port serial.Port) {
 		message := <-toMb
 		_, err := port.Write(message)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 	}
 }
 
-// func txd(port serial.Port) {
+// func txd(port serial.Port) { // debugging version
 // 	for {
 // 		message := <-toMb
-// 		fmt.Println(message)
+// 		notImpl(message, "TX")
 // 	}
 // }
 
@@ -77,11 +78,62 @@ func txd(port serial.Port) {
 // 		rawBytes <- i
 // 	}
 // }
+
+// getPnoKey returns the number of the next key pressed on the piano.
+// Key A0 = 1; key C8 = 88.
+func getPnoKey() uint8 {
+Drain:
+	for {
+		select {
+		case <-pnoKeys:
+			log.Print("pnoKeys undrained")
+		default:
+			break Drain
+		}
+	}
+	issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
+	k := <-pnoKeys // key 1 (A0) yields 21
+	return k - 20
+}
+
 var ( // message headers
-	cmdVnHead = []byte{0x55, 0xAA, 0x00, 0x60} // vanilla UI command
-	cmdAcHead = []byte{0x55, 0xAA, 0x00, 0x61} // UI command that expects acknoledgement
-	dtaRqHead = []byte{0x55, 0xAA, 0x00, 0x62} // data request
+	cmdVnHead = []byte{hdr0, hdr1, hdr2, cmdVn} // vanilla UI command
+	cmdAcHead = []byte{hdr0, hdr1, hdr2, cmdAc} // UI command that expects acknoledgement
+	dtaRqHead = []byte{hdr0, hdr1, hdr2, dtaRq} // data request
 )
+
+func parse() {
+	for {
+		hdr := []byte{}
+		msg := msg{}
+		var msgIndex int
+		for msgIndex = -1; msgIndex < 0; msgIndex = bytes.Index(hdr, []byte{hdr0, hdr1, hdr2}) {
+			b := <-rawBytes
+			hdr = append(hdr, b)
+		}
+		if msgIndex > 0 {
+			notImpl(hdr[:msgIndex], "Headless rubbish")
+		}
+		for i, b := range hdr[msgIndex:] {
+			msg[i] = b
+		}
+		for i := 3; i < 7; i++ {
+			msg[i] = <-rawBytes
+		}
+		if a, ok := actions[msg]; ok {
+			var i int
+			for i = 7; i < 9; i++ {
+				msg[i] = <-rawBytes
+			}
+			for k := 0; k < int(msg[8]); k++ {
+				msg[i+k] = <-rawBytes
+			}
+			a(msg)
+		} else {
+			notImpl(msg[:7])
+		}
+	}
+}
 
 func issueCmd(topic byte, subtopic byte, item byte, params ...interface{}) {
 	m1 := append(cmdVnHead, 0x1, topic, subtopic, item)
@@ -99,7 +151,7 @@ func issueCmd(topic byte, subtopic byte, item byte, params ...interface{}) {
 			m2 = append(m2, []byte(x)...)
 			l += len(x)
 		default:
-			log.Fatal("unknown cmd parameter")
+			log.Print("unknown cmd parameter")
 		case int: // byte, actually
 			m2 = append(m2, byte(x))
 			l++
@@ -128,7 +180,7 @@ func issueCmdAc(topic byte, subtopic byte, item byte, params ...interface{}) {
 			m2 = append(m2, byte(x))
 			l++
 		default:
-			log.Fatal("unknown cmd parameter")
+			log.Print("unknown cmd parameter")
 		}
 	}
 	m1 = append(m1, byte(l))
@@ -150,21 +202,20 @@ func issueDtaRq(requests ...request) {
 }
 
 func loadRegistration(reg byte) {
-	issueCmd(regst, rgLoa, 0x0, 0xF)
+	issueCmd(regst, rgLoa, 0x0, reg)
 	issueDtaRq(
-		request{regst, rgMod, 0xF, 0x1, 0x0})
+		request{regst, rgMod, reg, 0x1, 0x0})
 	issueDtaRq(
-		request{regst, rgMod, 0xF, 0x1, 0x0},
-		request{regst, rgNam, 0xF, 0x0})
+		request{regst, rgMod, reg, 0x1, 0x0},
+		request{regst, rgNam, reg, 0x0})
 }
-
 
 func msgUint16(b []byte) uint16 {
 	var r uint16
 	buf := bytes.NewReader(b[:2])
 	err := binary.Read(buf, binary.BigEndian, &r)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	return r
 }
@@ -173,7 +224,7 @@ func uint16Msg(i uint16) []byte {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.BigEndian, i)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	return buf.Bytes()[:2]
 }
@@ -184,7 +235,7 @@ func notImpl(m interface{}, what ...string) {
 		line += w
 	}
 	if line == "" {
-		line = "Unexpected"
+		line = "Not implemented"
 	}
 	line += ":"
 	switch message := m.(type) {
@@ -207,20 +258,30 @@ func item(a []string, i uint8) string {
 	return fmt.Sprint("undef:", i)
 }
 
+var mbState map[string]int
+
+func mbStateItem(key string) int {
+	s, ok := mbState[key]
+	if ok {
+		return s
+	} else {
+		log.Print("missing item", key, "in mbState")
+		return 0
+	}
+}
+
 var actions = map[msg]func(msg){
 	// key contains the bytes 0..6 of the raw message in an otherwise pristine msg
 
 	// 55    AA    00    6E    01
 	// 55    AA    00    6E    01    00
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, tgMod, 0x00}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, tgMod, 0x00}: func(m msg) {
 		switch m[7] {
 		case 0x0:
-			switch m[9] {
-			case 0:
-				fmt.Println("sound mode")
-			case 1:
-				fmt.Println("pianist mode")
-			default:
+			if m[9] <= 1 {
+				mbState["toneGeneratorMode"] = int(m[9])
+				fmt.Println(mode[m[9]])
+			} else {
 				notImpl(m, "unknown mode")
 			}
 		default:
@@ -228,81 +289,90 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    01
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, kbSpl, 0x00}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, kbSpl, 0x00}: func(m msg) {
 		switch m[7] {
 		case 0x0:
-			fmt.Println("keyboard mode", m[9])
+			mbState["keyboardMode"] = int(m[9])
+			fmt.Println("keyboard mode", item(kbMode[:], m[9]))
 		default:
 			notImpl(m, "unknown keyboard mode msg")
 		}
 	},
 	// 55    AA    00    6E    01    02
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, instr, iSing}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, iSing}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["single"] = int(m[9])
 			fmt.Println("single sound", item(instrumentSound[:], m[9]))
 		default:
 			notImpl(m, "unknown single sound msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, instr, iDua1}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, iDua1}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["dual1"] = int(m[9])
 			fmt.Println("first dual sound", item(instrumentSound[:], m[9]))
 		default:
 			notImpl(m, "unknown first dual sound msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, instr, iDua2}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, iDua2}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["dual2"] = int(m[9])
 			fmt.Println("second dual sound", item(instrumentSound[:], m[9]))
 		default:
 			notImpl(m, "unknown second dual sound msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, instr, iSpl1}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, iSpl1}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["split1"] = int(m[9])
 			fmt.Println("first split sound", item(instrumentSound[:], m[9]))
 		default:
 			notImpl(m, "unknown first split sound msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, instr, iSpl2}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, iSpl2}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["split2"] = int(m[9])
 			fmt.Println("second split sound", item(instrumentSound[:], m[9]))
 		default:
 			notImpl(m, "unknown second split sound msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, instr, i4Hd1}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, i4Hd1}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["4hands1"] = int(m[9])
 			fmt.Println("first 4hands sound", item(instrumentSound[:], m[9]))
 		default:
 			notImpl(m, "unknown first 4hands sound msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, instr, i4Hd2}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, i4Hd2}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["4hands2"] = int(m[9])
 			fmt.Println("second 4hands sound", item(instrumentSound[:], m[9]))
 		default:
 			notImpl(m, "unknown second 4hands sound msg")
 		}
 	},
 	// 55    AA    00    6E    01    04
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, pmSet, pmRen}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmRen}: func(m msg) {
 		switch m[7] {
 		case 0x0:
+			mbState["renderingCharacter"] = int(m[9])
 			fmt.Println("rendering character", item(renderingCharacter[:], m[9]))
 		default:
 			notImpl(m, "unknown rendering character msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, pmSet, pmRes}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmRes}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("resonance depth", m[9])
@@ -310,7 +380,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown resonance depth msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, pmSet, pmAmb}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmAmb}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("ambience type", item(ambienceType[:], m[9]))
@@ -318,7 +388,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown ambience type msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, pmSet, pmAmD}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmAmD}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("ambience depth", m[9])
@@ -327,7 +397,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    08
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, revrb, rOnOf}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rOnOf}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -342,10 +412,10 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown reverb stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, revrb, rDpth}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, revrb, rTime}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rDpth}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rTime}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    09
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, effct, eOnOf}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, eOnOf}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -360,10 +430,10 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown effects stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, effct, ePar1}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, effct, ePar2}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, ePar1}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, ePar2}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    0A
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, metro, mOnOf}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mOnOf}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -378,7 +448,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown metronome stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, metro, mTmpo}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mTmpo}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("metronome tempo", msgUint16(m[9:11]))
@@ -386,7 +456,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown metronome tempo msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, metro, mSign}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mSign}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("metronome time signature", item(rhythmPattern[:], m[9]))
@@ -394,7 +464,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown metronome time signature msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, metro, mVolu}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("metronome volume", m[9])
@@ -402,7 +472,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown metronome volume msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, metro, mBeat}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mBeat}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("metronome beat", m[9])
@@ -411,7 +481,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    0F
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, regst, rgOpn}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgOpn}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -427,16 +497,16 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown registration screen stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, regst, rgLoa}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgLoa}: func(m msg) {
 		switch m[7] {
 		case 0x0:
-			fmt.Println("current favourite is", int8(m[9]))
+			fmt.Println("current registration is", int8(m[9]))
 		default:
-			notImpl(m, "unknown current favourite msg")
+			notImpl(m, "unknown current registration msg")
 		}
 	},
 	// 55    AA    00    6E    01    10
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, mainF, mTran}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, mTran}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("transpose", int8(m[9]))
@@ -444,23 +514,23 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown transpose msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    14
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, files, fPgrs}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, files, fMvNm}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fPgrs}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvNm}: func(m msg) {
 		fmt.Printf("rename done: USB filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, files, fRmNm}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fRmNm}: func(m msg) {
 		fmt.Printf("delete: USB filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, files, fMvEx}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvEx}: func(m msg) {
 		fmt.Printf("rename: USB filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, files, fRmEx}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fRmEx}: func(m msg) {
 		fmt.Printf("delete: USB filename extension(%d)=%d\n", m[7], m[9])
 	},
 	// 55    AA    00    6E    01    16
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, bluet, btAud}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, bluet, btAud}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -475,7 +545,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown bt audio stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, bluet, btMid}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, bluet, btMid}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -491,10 +561,10 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    20
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, smRec, 0x00}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, smRec, 0x01}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, smRec, 0x02}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, smRec, 0x60}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, smRec, smSel}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, smRec, smPlP}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, smRec, smRcP}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, smRec, smPEm}: func(m msg) {
 		switch m[9] {
 		case 0:
 			fmt.Println("part", m[7], "empty")
@@ -505,38 +575,38 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    21
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, pmRec, 0x00}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmRec, pmSel}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    22
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, auRec, 0x30}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, auRec, 0x40}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, 0x30}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, auPNm}: func(m msg) {
 		fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, auRec, 0x41}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, auPEx}: func(m msg) {
 		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], item(fileExt[:], m[9]))
 	},
 	// 55    AA    00    6E    01    32
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, msg32, 0x00}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, msg32, 0x04}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, msg32, 0x05}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg32, 0x00}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg32, 0x04}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg32, 0x05}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    3F
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, biSng, 0x40}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, biSng, 0x40}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    60
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, servi, 0x41}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, servi, 0x43}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, servi, 0x46}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, servi, 0x48}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, servi, 0x49}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, servi, 0x4A}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, servi, 0x4D}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x41}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x43}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x46}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x48}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x49}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x4A}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x4D}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    61
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, romId, 0x00}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, romId, 0x01}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, romId, 0x02}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, 0x00}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, 0x01}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, 0x02}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    65
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, msg65, 0x00}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, msg65, 0x01}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg65, 0x00}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg65, 0x01}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    70
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, hardw, hwUsb}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwUsb}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -551,7 +621,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown USB stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, hardw, hwHPh}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwHPh}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -566,9 +636,9 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown phones stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, hardw, hw_03}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hw_03}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    71
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x00}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plDur}: func(m msg) { // really duration?
 		switch m[7] {
 		case 0x0:
 			fmt.Println("duration", msgUint16(m[9:11]))
@@ -576,7 +646,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown duration count stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x01}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x01}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("bar/second count", msgUint16(m[9:11]))
@@ -584,7 +654,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown bar/second count stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x02}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x02}: func(m msg) { // really duration?
 		switch m[7] {
 		case 0x0:
 			fmt.Println("duration", msgUint16(m[9:11]))
@@ -592,7 +662,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown duration count stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x03}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plBrC}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("bar count", msgUint16(m[9:11]))
@@ -600,7 +670,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown bar count stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x04}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plBea}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("beat", m[9], msgUint16(m[10:12]))
@@ -608,10 +678,10 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown beat stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x08}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x09}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x11}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x12}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x08}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x09}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x11}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x12}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -624,7 +694,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown stopped stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, playr, 0x13}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plA_B}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("A-B repeat mode", m[9])
@@ -633,33 +703,33 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    7E
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, rpFce, 0x00}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, rpFce, 0x00}: func(m msg) {
 		switch m[7] {
-		case 0x0:
+		case rpClo:
 			fmt.Println("close recorder/player")
-		case 0x2:
+		case rpInt:
 			fmt.Println("open internal recorder/player")
-		case 0x3:
+		case rpUsb:
 			fmt.Println("open USB recorder/player")
-		case 0x5:
+		case rpDem:
 			fmt.Println("open demo song player")
-		case 0x7:
+		case rpLes:
 			fmt.Println("open lesson song player")
-		case 0x8:
+		case rpCon:
 			fmt.Println("open concert magic player")
-		case 0x9:
+		case rpPno:
 			fmt.Println("open piano music player")
 		default:
 			notImpl(m, "unknown recorder/player face request")
 		}
 	},
 	// 55    AA    00    6E    01    7F
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, commu, 0x00}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, commu, 0x01}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x6E, 0x01, commu, 0x04}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, 0x00}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, 0x01}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, 0x04}: func(m msg) { notImpl(m) },
 	// 55    AA    00    71    01
 	// 55    AA    00    71    01    10
-	{0x55, 0xAA, 0x00, 0x71, 0x01, mainF, mFact}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, mainF, mFact}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("Ok, factory reset")
@@ -668,7 +738,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    71    01    14
-	{0x55, 0xAA, 0x00, 0x71, 0x01, files, 0x60}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fUsCf}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("done: load from USB")
@@ -676,7 +746,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown load from USB stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x71, 0x01, files, 0x64}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fSvKs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Printf("save .KSO to USB: confirming filename=%s\n", m[9:])
@@ -684,7 +754,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown save .KSO filename stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x71, 0x01, files, 0x65}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fSvSm}: func(m msg) {
 		switch m[7] {
 		case 0xFF:
 			fmt.Printf("save .MID to USB: confirming filename=%s\n", m[9:])
@@ -692,7 +762,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown save .MID file stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x71, 0x01, files, fName}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fName}: func(m msg) {
 		switch m[7] {
 		case 0xFF:
 			fmt.Printf("rename: confirming new USB filename=%s\n", m[9:])
@@ -700,7 +770,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown rename USB file stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x71, 0x01, files, fRmCf}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fRmCf}: func(m msg) {
 		switch m[7] {
 		case 0xFF:
 			fmt.Printf("delete: confirming USB file deletion\n")
@@ -708,7 +778,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown delete USB file stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x71, 0x01, files, fFmat}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fFmat}: func(m msg) {
 		switch m[7] {
 		case 0xFF:
 			fmt.Println("USB format done")
@@ -717,11 +787,11 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    71    01    20
-	{0x55, 0xAA, 0x00, 0x71, 0x01, smRec, 0x40}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, smRec, smEra}: func(m msg) { notImpl(m) },
 	// 55    AA    00    71    01    21
-	{0x55, 0xAA, 0x00, 0x71, 0x01, pmRec, 0x40}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, pmRec, pmEra}: func(m msg) { notImpl(m) },
 	// 55    AA    00    71    01    22
-	{0x55, 0xAA, 0x00, 0x71, 0x01, auRec, 0x50}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, auRec, auNam}: func(m msg) {
 		switch m[7] {
 		case 0xFF:
 			fmt.Printf("audio recorder filename=%s\n", m[9:])
@@ -730,7 +800,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    71    01    71
-	{0x55, 0xAA, 0x00, 0x71, 0x01, playr, 0x10}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, playr, 0x10}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("duration", msgUint16(m[9:11]))
@@ -739,7 +809,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    71    01    7F
-	{0x55, 0xAA, 0x00, 0x71, 0x01, commu, 0x7F}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, commu, 0x7F}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("Hi, I'm a mainboard")
@@ -749,7 +819,7 @@ var actions = map[msg]func(msg){
 	},
 	// 55    AA    00    72    01
 	// 55    AA    00    72    01    04
-	{0x55, 0xAA, 0x00, 0x72, 0x01, pmSet, pmAmb}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmb}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			if t := m[9]; t < 0xA {
@@ -761,7 +831,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, fmt.Sprint("unknown ambience type stuff"))
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, pmSet, pmAmD}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmD}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			if d := m[9]; d < 0xA {
@@ -774,7 +844,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    08
-	{0x55, 0xAA, 0x00, 0x72, 0x01, revrb, rOnOf}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rOnOf}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -789,7 +859,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown reverb stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, revrb, rType}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rType}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("reverb type", m[9])
@@ -797,7 +867,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown reverb type msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, revrb, rDpth}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rDpth}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			if d := m[9]; d >= 1 && d < 0xB {
@@ -809,7 +879,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, fmt.Sprint("unknown reverb depth stuff"))
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, revrb, rTime}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rTime}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			if d := m[9]; d >= 1 && d < 0xB {
@@ -822,7 +892,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    09
-	{0x55, 0xAA, 0x00, 0x72, 0x01, effct, eOnOf}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, eOnOf}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			switch m[9] {
@@ -837,7 +907,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown effects stuff")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, effct, eType}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, eType}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("effects type", item(effectsType[:], m[9]))
@@ -845,7 +915,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown effects type msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, effct, ePar1}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, ePar1}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			if d := m[9]; d >= 1 && d < 0xB {
@@ -857,7 +927,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, fmt.Sprint("unknown effects parameter1 stuff"))
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, effct, ePar2}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, ePar2}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			if d := m[9]; d >= 1 && d < 0xB {
@@ -870,29 +940,26 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    0F
-	{0x55, 0xAA, 0x00, 0x72, 0x01, regst, rgNam}: func(m msg) {
-		if reg := m[7]; reg < 0xF {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, regst, rgNam}: func(m msg) {
+		if reg := m[7]; reg <= 0xF {
 			fmt.Printf("name of registration %d = %s\n", reg, m[9:])
 		} else {
-			fmt.Println("unknown registration", reg)
+			fmt.Println("unknown registration (name)", reg)
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, regst, rgMod}: func(m msg) {
-		if reg := m[7]; reg < 0xF {
-			switch m[9] {
-			case 0:
-				fmt.Println("registration", reg, "is for sound mode")
-			case 1:
-				fmt.Println("registration", reg, "is for pianist mode")
-			default:
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, regst, rgMod}: func(m msg) {
+		if reg := m[7]; reg <= 0xF {
+			if m[9] <= 1 {
+				fmt.Println("registration", reg, "is for", item(mode[:], m[9]))
+			} else {
 				notImpl(m, fmt.Sprint("unknown mode for registration", reg))
 			}
 		} else {
-			fmt.Println("unknown registration", reg)
+			fmt.Println("unknown registration (mode)", reg)
 		}
 	},
 	// 55    AA    00    72    01    10
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, mTran}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTran}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("transpose", int8(m[9]))
@@ -900,7 +967,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown transpose msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, mTone}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTone}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("tone control", item(toneControl[:], m[9]))
@@ -908,7 +975,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown tone control msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, mSpkV}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mSpkV}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("speaker volume", item(speakerVolume[:], m[9]))
@@ -916,7 +983,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown speaker volume msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, mLinV}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mLinV}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("line-in level", int8(m[9]))
@@ -924,7 +991,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown line-in level msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, mWall}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mWall}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("wall EQ", m[9])
@@ -932,9 +999,9 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown wall EQ msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, m__06}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, m__07}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, mAOff}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__06}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__07}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mAOff}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("auto power off", m[9])
@@ -942,28 +1009,17 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown auto power off msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, m__0C}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, mainF, mUTon}: func(m msg) {
-		switch m[7] {
-		case 0x0:
-			fmt.Println("user tone control, low dB=", int8(m[9]))
-		case 0x1:
-			fmt.Println("user tone control, mid-low freqency", m[9])
-		case 0x2:
-			fmt.Println("user tone control, mid-low dB", int8(m[9]))
-		case 0x3:
-			fmt.Println("user tone control, mid-high frequency", m[9])
-		case 0x4:
-			fmt.Println("user tone control, mid-high dB", int8(m[9]))
-		case 0x5:
-			fmt.Println("user tone control, high frequency", m[9])
-		default:
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__0C}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mUTon}: func(m msg) {
+		if m[7] < 6 {
+			fmt.Println("user tone control,", item(userToneControl[:], m[7]), int8(m[9]))
+		} else {
 			notImpl(m, "unknown user tone control msg")
 		}
 	},
 	// 55    AA    00    72    01    11
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, tCurv}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, tCurv}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("touch curve", item(touchCurve[:], m[9]))
@@ -971,7 +1027,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown touch curve msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, voicg}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, voicg}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("voicing", item(voicing[:], m[9]))
@@ -979,7 +1035,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown voicing msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, dmpRs}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dmpRs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("damper resonance", m[9])
@@ -987,7 +1043,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown damper resonance msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, dmpNs}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dmpNs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("damper noise", m[9])
@@ -995,7 +1051,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown damper noise msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, strRs}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, strRs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("string resonance", m[9])
@@ -1003,7 +1059,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown string resonance msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, uStRs}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uStRs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("undamped string resonance", m[9])
@@ -1011,7 +1067,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown undamped string resonance msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, cabRs}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, cabRs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("cabinet resonance", m[9])
@@ -1019,7 +1075,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown cabinet resonance msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, koEff}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, koEff}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("key-off resonance", m[9])
@@ -1027,7 +1083,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown key-off resonance msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, fBkNs}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, fBkNs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("fall-back noise", m[9])
@@ -1035,7 +1091,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown fall-back noise msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, hmDly}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, hmDly}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("hammer delay", m[9])
@@ -1043,7 +1099,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown hammer delay msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, topBd}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, topBd}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("topboard", item(topboard[:], m[9]))
@@ -1051,7 +1107,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown topboard msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, dcayT}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dcayT}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("decay time", m[9])
@@ -1059,7 +1115,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown decay time msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, miTch}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, miTch}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("minimum touch", m[9])
@@ -1067,7 +1123,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown minimum touch msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, streT}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, streT}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("stretch tuning", item(stretchTuning[:], m[9]))
@@ -1075,7 +1131,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown stretch tuning msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, tmpmt}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, tmpmt}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("temperament", item(temperament[:], m[9]))
@@ -1083,8 +1139,8 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown temperament msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, vt_0F}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, keyVo}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, vt_0F}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, keyVo}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("key volume", item(keyVolume[:], m[9]))
@@ -1092,7 +1148,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown key-volume msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, hfPdl}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, hfPdl}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("half-pedal adjust", m[9])
@@ -1100,7 +1156,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown half-pedal adjust msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, sfPdl}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, sfPdl}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("soft-pedal depth", m[9])
@@ -1108,7 +1164,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown soft-pedal depth msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, smart}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, smart}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("virtual-technician smart mode", m[9])
@@ -1116,20 +1172,20 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown virtual-technician smart mode msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, uVoic}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uVoic}: func(m msg) {
 		fmt.Println("key", m[7], "has user voicing", m[9])
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, uStrT}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uStrT}: func(m msg) {
 		fmt.Println("key", m[7], "has user stretch", m[9])
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, uTmpm}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uTmpm}: func(m msg) {
 		fmt.Println("key", m[7], "has user temperament", m[9])
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, vTech, uKeyV}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uKeyV}: func(m msg) {
 		fmt.Println("key", m[7], "has user key volume", m[9])
 	},
 	// 55    AA    00    72    01    12
-	{0x55, 0xAA, 0x00, 0x72, 0x01, hPhon, phShs}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, hPhon, phShs}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("SHS mode", item(shsMode[:], m[9]))
@@ -1137,7 +1193,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown SHS mode msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, hPhon, phTyp}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, hPhon, phTyp}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			fmt.Println("phones type", item(phonesType[:], m[9]))
@@ -1145,7 +1201,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown phones type msg")
 		}
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, hPhon, phVol}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, hPhon, phVol}: func(m msg) {
 		switch m[7] {
 		case 0x0:
 			if x := m[9]; int(x) < len(m) {
@@ -1156,12 +1212,12 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    13
-	{0x55, 0xAA, 0x00, 0x72, 0x01, midiI, miCha}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, midiI, miPgC}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, midiI, miLoc}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, midiI, miTrP}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, midiI, miMul}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, midiI, miMut}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miCha}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miPgC}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miLoc}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miTrP}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMul}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMut}: func(m msg) {
 		if ch := m[7]; ch < 0x10 {
 			switch m[9] {
 			case 0:
@@ -1177,33 +1233,33 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    14
-	{0x55, 0xAA, 0x00, 0x72, 0x01, files, 0x40}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsNm}: func(m msg) {
 		fmt.Printf("load from USB filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, files, fMvNm}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fMvNm}: func(m msg) {
 		fmt.Printf("rename: USB filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, files, fRmNm}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fRmNm}: func(m msg) {
 		fmt.Printf("delete: USB filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, files, 0x50}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsEx}: func(m msg) {
 		fmt.Printf("load from USB filename extension(%d)=%s\n", m[7], item(fileExt[:], m[9]))
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, files, fMvEx}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fMvEx}: func(m msg) {
 		fmt.Printf("rename: USB filename extension(%d)=%s\n", m[7], item(fileExt[:], m[9]))
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, files, fRmEx}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fRmEx}: func(m msg) {
 		fmt.Printf("delete: USB filename extension(%d)=%s\n", m[7], item(fileExt[:], m[9]))
 	},
 	// 55    AA    00    72    01    16
-	{0x55, 0xAA, 0x00, 0x72, 0x01, bluet, btAud}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, bluet, btAuV}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, bluet, btMid}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAud}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAuV}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btMid}: func(m msg) { notImpl(m) },
 	// 55    AA    00    72    01    17
-	{0x55, 0xAA, 0x00, 0x72, 0x01, lcdCn, 0x00}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, lcdCn, 0x02}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, smRec, 0x60}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, smRec, 0x61}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, lcdCn, 0x00}:  func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, lcdCn, 0x02}:  func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, smRec, smPEm}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, smRec, smEmp}: func(m msg) {
 		if song := m[7]; song < 0xA {
 			switch m[9] {
 			case 0:
@@ -1218,7 +1274,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    21
-	{0x55, 0xAA, 0x00, 0x72, 0x01, pmRec, 0x61}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmRec, pmEmp}: func(m msg) {
 		if song := m[7]; song < 0x3 {
 			switch m[9] {
 			case 0:
@@ -1233,28 +1289,27 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    22
-	{0x55, 0xAA, 0x00, 0x72, 0x01, auRec, 0x13}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, auRec, 0x22}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, auRec, 0x23}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, auRec, 0x30}: func(m msg) { notImpl(m) },
-	{0x55, 0xAA, 0x00, 0x72, 0x01, auRec, 0x40}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x13}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x22}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x23}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x30}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPNm}: func(m msg) {
 		fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:])
 	},
-	{0x55, 0xAA, 0x00, 0x72, 0x01, auRec, 0x41}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPEx}: func(m msg) {
 		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], item(fileExt[:], m[9]))
 	},
 	// 55    AA    00    72    01    32
-	{0x55, 0xAA, 0x00, 0x72, 0x01, msg32, 0x02}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, msg32, 0x02}: func(m msg) { notImpl(m) },
 	// 55    AA    00    72    01    70
-	{0x55, 0xAA, 0x00, 0x72, 0x01, hardw, hwKey}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, hardw, hwKey}: func(m msg) {
 		switch m[7] {
 		case 0x0:
-			fmt.Printf("key %d pressed\n", m[9])
+			pnoKeys <- m[9]
 		default:
 			notImpl(m, "unknown keypress stuff")
 		}
 	},
 	// 55    AA    00    72    01    71
-	{0x55, 0xAA, 0x00, 0x72, 0x01, playr, 0x07}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, playr, 0x07}: func(m msg) { notImpl(m) },
 }
-// TODO: make actions funcs accept bool
