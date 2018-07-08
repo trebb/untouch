@@ -1,7 +1,7 @@
 export GOPATH = $(shell pwd)
 
-SRC_BTN=ui.go names.go const.go getchar.go input-btn.go
-SRC_CLI=ui.go names.go const.go getchar.go input-cli.go
+SRC_BTN=ui.go names.go const.go getchar.go pnokeys.go input-btn.go display.go
+SRC_CLI=ui.go names.go const.go getchar.go pnokeys.go input-cli.go display.go
 
 all: ui-btn ui-cli
 
@@ -12,7 +12,7 @@ ui-btn: $(SRC_BTN)
 
 ui-cli: $(SRC_CLI)
 	go get -d -x
-	go build $^
+	GOOS=linux GOARCH=arm go build $^
 	mv ui ui-cli
 clean:
 	go clean
