@@ -1,17 +1,18 @@
 package main
 
-var (
-	mode = [...]string{
+// TEST
+var names = map[string][]string{
+	"toneGeneratorMode": {
 		"Sound mode",
 		"Pianist mode",
-	}
-	kbMode = [...]string{
+	},
+	"kbMode": {
 		"Single",
 		"Dual",
 		"Split",
 		"4Hands",
-	}
-	renderingCharacter = [...]string{
+	},
+	"renderingCharacter": {
 		"Classic",
 		"Romantic",
 		"Full",
@@ -22,8 +23,8 @@ var (
 		"Pop",
 		"Vintage",
 		"Boogie",
-	}
-	instrumentSound = [...]string{
+	},
+	"instrumentSound": {
 		// Piano 1
 		"SK ConcertGrand",
 		"EX ConcertGrand",
@@ -120,8 +121,12 @@ var (
 		"Ballad Guitar",
 		"Pick Nylon Gt.",
 		"Finger Nylon Gt",
-	}
-	rhythmPattern = [...]string{
+	},
+	"metronomeOnOff": {
+		"Off",
+		"On",
+	},
+	"rhythmPattern": {
 		"1/4",
 		"2/4",
 		"3/4",
@@ -243,8 +248,8 @@ var (
 		"Ragtime",
 		"March",
 		"6/8 March",
-	}
-	ambienceType = [...]string{
+	},
+	"ambienceType": {
 		"Natural",
 		"Small Room",
 		"Medium Room",
@@ -255,8 +260,24 @@ var (
 		"Bright Lounge",
 		"Live Stage",
 		"Echo",
-	}
-	effectsType = [...]string{
+	},
+	"reverbOnOff": {
+		"Off",
+		"On",
+	},
+	"effectsOnOff": {
+		"Off",
+		"On",
+	},
+	"reverbType": {
+		"Room",
+		"Lounge",
+		"Small Hall",
+		"Concert Hall",
+		"Live Hall",
+		"Cathedral",
+	},
+	"effectsType": {
 		"Mono Delay",
 		"Ping Delay",
 		"Triple Delay",
@@ -275,8 +296,21 @@ var (
 		"Rotary 3",
 		"Rotary 4",
 		"Rotary 5",
-	}
-	touchCurve = [...]string{
+	},
+	"smartModeVt": {
+		"Off",
+		"Noiseless",
+		"Deep Resonance",
+		"Light Resonance",
+		"Soft",
+		"Brilliant",
+		"Clean",
+		"Full",
+		"Dark",
+		"Rich",
+		"Classical",
+	},
+	"touchCurve": {
 		"Light+",
 		"Light",
 		"Normal",
@@ -284,8 +318,8 @@ var (
 		"Heavy+",
 		"Off",
 		"User",
-	}
-	voicing = [...]string{
+	},
+	"voicing": {
 		"Normal",
 		"Mellow 1",
 		"Mellow 2",
@@ -294,20 +328,20 @@ var (
 		"Bright 2",
 		"User",
 		"User Voicing",
-	}
-	topboard = [...]string{
+	},
+	"topboard": {
 		"Open 3",
 		"Open 2",
 		"Open 1",
 		"Closed",
-	}
-	stretchTuning = [...]string{
+	},
+	"stretchTuning": {
 		"Off",
 		"Normal",
 		"Wide",
 		"User",
-	}
-	temperament = [...]string{
+	},
+	"temperament": {
 		"Equal",
 		"Pure Major/Pure Minor",
 		"Pythagorean",
@@ -315,30 +349,38 @@ var (
 		"Werckmeister",
 		"Kirnberger",
 		"User",
-	}
-	keyVolume = [...]string{
+	},
+	"keyVolume": {
 		"Normal",
 		"High Damping",
 		"Low Damping",
 		"High & Low Damping",
 		"Center Damping",
 		"User",
-	}
-	shsMode = [...]string{
+	},
+	"shsMode": {
 		"Off",
 		"Forward",
 		"Normal",
 		"Wide",
-	}
-	phonesType = [...]string{
+	},
+	"phonesType": {
 		"Normal",
 		"Open",
 		"Semi-open",
 		"Closed",
 		"Inner-ear",
 		"Canal",
-	}
-	toneControl = [...]string{
+	},
+	"UsbThumbDrivePresence": {
+		"unplugged",
+		"plugged",
+	},
+	"phonesPresence": {
+		"unplugged",
+		"plugged",
+	},
+	"toneControl": {
 		"Off",
 		"Brilliance",
 		"Loudness",
@@ -346,29 +388,76 @@ var (
 		"Treble Boost",
 		"Mid Cut",
 		"User",
-	}
-	userToneControl = [...]string{
+	},
+	"userToneControl": {
 		"low dB",
 		"mid-low freqency",
 		"mid-low dB",
 		"mid-high frequency",
 		"mid-high dB",
 		"high frequency",
-	}		
-	speakerVolume = [...]string{
+	},
+	"speakerVolume": {
 		"Low",
 		"Normal",
-	}
-	phonesVolume = [...]string{
+	},
+	"phonesVolume": {
 		"Normal",
 		"High",
-	}
+	},
+	"wallEq": {
+		"Off",
+		"On",
+	},
+	"autoPowerOff": {
 
-	fileExt = [...]string{
+		"Off",
+		"15 min",
+		"60 min",
+		"120 min",
+	},
+
+	"fileExt": {
 		2: " (dir)",
 		6: ".KSO",
 		7: ".MID",
 		8: ".MP3",
 		9: ".WAV",
-	}
-)
+	},
+	"emptiness": { // of various songs
+		"empty",
+		"used",
+	},
+	"mutedness": { // of various midi channels
+		"muted",
+		"unmuted",
+	},
+	"bluetoothMidi": {
+		"Off",
+		"On",
+	},
+	"bluetoothAudio": {
+		"Off",
+		"On",
+	},
+}
+
+func addDuplicateNames() {
+	names["single"] = names["instrumentSound"]
+	names["dual1"] = names["instrumentSound"]
+	names["dual2"] = names["instrumentSound"]
+	names["split1"] = names["instrumentSound"]
+	names["split2"] = names["instrumentSound"]
+	names["4hands1"] = names["instrumentSound"]
+	names["4hands2"] = names["instrumentSound"]
+}
+
+var tempi []uint16 = []uint16{
+	0,
+	10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+	28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 42, 44, 45, 47, 50, 52,
+	55, 58, 60, 63, 65, 68, 70, 72, 75, 78, 80, 83, 86, 90, 93, 96, 100,
+	104, 108, 112, 116, 120, 125, 130, 136, 142, 148, 154, 160, 167, 174,
+	180, 188, 196, 204, 212, 220, 230, 238, 248, 258, 269, 280, 291, 303,
+	315, 328, 341, 355, 370, 384, 400,
+}

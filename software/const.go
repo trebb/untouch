@@ -265,3 +265,7 @@ const ( // (rpFce, 0x7E) recorder/player face
 	rpCon = 0x08 // concert magic
 	rpPno = 0x09 // piano music
 )
+
+const ( // (commu, 0x7E) communication setup
+	// commu = 0x7F // init
+)

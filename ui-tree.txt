@@ -1,0 +1,35 @@
+
+* [keyboard mode (pianist, single, dual, split, 4hands)]
+** [shift]
+*** global sound settings
+* [instrument sound]
+** [shift]
+*** sound 1 (of one or two)
+** [ctrl]
+*** sound 2
+
+* [virtual technician]
+  
+**** store to sound
+**** smart mode
+**** advanced mode
+
+* [metronome start/stop]
+** [shift]
+*** metronome tempo
+** [ctrl]
+*** metronome time signature
+** ?? (put with other settings)
+*** volume
+
+* [load registration]
+* [shift]
+** store registration
+
+* [record start/stop]
+* [play]
+** [shift]
+*** settings
+
+
+
