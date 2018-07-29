@@ -1,0 +1,142 @@
+\documentclass[landscape,fontsize=8pt,DIV=36,BCOR=10mm,twoside,a4paper,footinclude,headinclude]{scrartcl}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\def\legend{}
+\def\fileline{\ifeof\legends\def\legend{}\else\read\legends to \legend\fi\legend}
+\newread\legends
+
+\def\img#1{
+  \openin\legends=#1
+  \fileline
+  
+  %% \section{\fileline}
+  \begin{tikzpicture}
+    \tikzset{%
+      White/.style = {%
+        node distance = 0cm and 0cm,
+        draw,
+        minimum width = .5cm,
+        minimum height = 2.5cm,
+        inner sep = 0pt},
+      Black/.style = {%
+        fill = black,
+        minimum width = .3cm,
+        minimum height = 1.5cm,
+        inner sep = 0pt,
+        anchor = north},
+    }
+    \node[White] (White-0-6) {};
+    \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-0-6.north)
+    {\fileline}; 
+    \node[font = \small,below] at (White-0-6.south)
+    {1};
+    % \node[font = \small,above,rotate = 90,transform shape,anchor = west] at
+    % (White-0-6.south) {A0};
+    \node[Black] at (White-0-6.north east) {};
+    \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-0-6.north east)
+    {\fileline};
+
+    \node[White,right = of White-0-6] (White-0-7) {};
+    \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-0-7.north)
+    {\fileline}; 
+    \node[font = \small,below] at (White-0-7.south)
+    {3};
+    % \node[font = \small,above] at
+    % (White-0-7.south) {B0};
+
+    \def\noteindex{4}%
+    \foreach \octave [remember = \octave as \lastoctave (initially 0)] in {1,...,7}{%
+      \foreach \White/\note [remember = \White as \lastWhite (initially 7)] in {1/C,2/D,3/E,4/F,5/G,6/A,7/B} {%
+        \ifnum\White=1\relax
+        \node[White,right = of White-\lastoctave-\lastWhite] (White-\octave-\White) {};
+        \else
+        \node[White,right = of White-\octave-\lastWhite] (White-\octave-\White) {};
+        \fi
+        \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-\octave-\White.north)
+        {\fileline};
+        \node[font = \small,below] at (White-\octave-\White.south)
+        {\noteindex};
+
+        \ifcase\White\relax
+        \or% C
+        \node[Black] at (White-\octave-\White.north east) {};
+        \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-\octave-\White.north east)
+        {\fileline};
+        \node[font = \small,above] at
+        (White-\octave-\White.south) {\note\octave};
+        \xdef\noteindex{\number\numexpr\noteindex+2\relax}%
+        \or% D
+        \node[Black] at (White-\octave-\White.north east) {};
+        \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-\octave-\White.north east)
+        {\fileline};
+        \xdef\noteindex{\number\numexpr\noteindex+2\relax}%
+        \or% E
+        \xdef\noteindex{\number\numexpr\noteindex+1\relax}%
+        \or% F
+        \node[Black] at (White-\octave-\White.north east) {};
+        \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-\octave-\White.north east)
+        {\fileline};
+        \xdef\noteindex{\number\numexpr\noteindex+2\relax}%
+        \or% G
+        \node[Black] at (White-\octave-\White.north east) {};
+        \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-\octave-\White.north east)
+        {\fileline};
+        \xdef\noteindex{\number\numexpr\noteindex+2\relax}%
+        \or% A
+        \node[Black] at (White-\octave-\White.north east) {};
+        \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-\octave-\White.north east)
+        {\fileline};
+        \xdef\noteindex{\number\numexpr\noteindex+2\relax}%
+        \or% B
+        \xdef\noteindex{\number\numexpr\noteindex+1\relax}%
+        \fi
+      }
+    }
+    
+    \node[White,right = of White-7-7] (White-8-1) {};
+    \node[font = \small,above,rotate = 90,transform shape,anchor = west] at (White-8-1.north)
+    {\fileline}; 
+    \node[font = \small,below] at (White-8-1.south)
+    {\noteindex};
+    \node[font = \small,above] at (White-8-1.south) {C8};
+  \end{tikzpicture}
+  \closein\legends
+}
+
+\begin{document}
+\raggedbottom
+\sffamily
+
+\img {keyboard_mode.tex}
+\img {pianist_mode_sounds.tex}
+\img {sound_mode_sounds.tex}
+\img {tempo.tex}
+\section{Rhythm Groups}
+\img {rhythm_groups_time_signature.tex}
+\img {rhythm_groups_8beat.tex}
+\img {rhythm_groups_8beat_rock.tex}
+\img {rhythm_groups_16beat.tex}
+\img {rhythm_groups_8beat_ballad.tex}
+\img {rhythm_groups_16beat_ballad.tex}
+\img {rhythm_groups_16beat_dance.tex}
+\img {rhythm_groups_16beat_swing.tex}
+\img {rhythm_groups_8beat_swing.tex}
+\img {rhythm_groups_triplet.tex}
+\img {rhythm_groups_jazz.tex}
+\img {rhythm_groups_latin_traditional.tex}
+\img {settings.tex}
+\img {ambience_type.tex}
+\img {reverb_type.tex}
+\img {tuning.tex}
+\img {tone_control.tex}
+\img {shs_mode.tex}
+\img {phones_type.tex}
+\img {multi_timbral_mode.tex}
+\img {auto_power_off.tex}
+\img {virtual_technician.tex}
+\img {virtual_technician_smart_mode.tex}
+\img {registration.tex}
+\img {immediate_action.tex}
+\img {songs.tex}
+\end{document}
