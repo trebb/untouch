@@ -19,6 +19,9 @@ const ( // principal topics of mainboard operation
 	kbSpl = 0x01 // keyboard splitting
 	instr = 0x02 // sound-mode instrument
 	pmSet = 0x04 // pianist mode settings
+	dlSet = 0x05 // dual-mode settings (sound mode)
+	spSet = 0x06 // split-mode settings (sound mode)
+	h4Set = 0x07 // 4hands-mode settings (sound mode)
 	revrb = 0x08 // reverb
 	effct = 0x09 // effects
 	metro = 0x0A // metronome/drums
@@ -55,6 +58,12 @@ const ( // (tgMod, 0x00) tone generator modes
 const ( // (kbSpl, 0x01) keyboard splitting
 	kbSpM = 0x00 // single, dual, split, 4hands
 )
+const ( // the four keyboard spliting modes
+	kbSpMSingle = 0x00
+	kbSpMDual   = 0x01
+	kbSpMSplit  = 0x02
+	kbSpM4hands = 0x03
+)
 
 const ( // (instr, 0x02) sound-mode instruments
 	iSing = 0x00 // single instrument
@@ -71,6 +80,25 @@ const ( // (pmSet, 0x04) pianist mode settings
 	pmRes = 0x01 // resonance depth
 	pmAmb = 0x02 // ambience type
 	pmAmD = 0x03 // ambience depth
+)
+
+const ( // (dlSet, 0x05) dual-mode settings (sound mode)
+	dlBal = 0x00 // balance
+	dlOcS = 0x01 // layer octave shift
+	dlDyn = 0x02 // dynamics
+)
+
+const ( // (spSet, 0x06) split-mode settings (sound mode)
+	spBal = 0x00 // balance
+	spOcS = 0x01 // lower octave shift
+	spPed = 0x02 // lower pedal
+	spSpP = 0x03 // split point
+)
+const ( // (h4Set, 0x07) 4hands-mode settings (sound mode)
+	h4Bal = 0x00 // balance
+	h4LOS = 0x01 // left octave shift
+	h4ROS = 0x02 // right octave shift
+	h4SpP = 0x03 // split point
 )
 
 const ( // (revrb, 0x08) reverb settings
@@ -109,9 +137,9 @@ const ( // (mainF, 0x10) mainF
 	mSpkV = 0x03 // speaker volume
 	mLinV = 0x04 // line-in volume
 	mWall = 0x05 // wall EQ
+	mTung = 0x06 // tuning
+	mDpHl = 0x07 // damper hold
 	m__08 = 0x08 //
-	m__06 = 0x06 //
-	m__07 = 0x07 //
 	mFact = 0x09 // factory reset
 	mAOff = 0x0A // auto power-off
 	m__0B = 0x0B //
@@ -135,11 +163,12 @@ const ( // (vTech, 0x11) virtual technician settings
 	miTch = 0x0C // minimum touch
 	streT = 0x0D // stretch tuning
 	tmpmt = 0x0E // temperament
-	vt_0F = 0x0F // ???
+	tmKey = 0x0F // temperament key
 	keyVo = 0x10 // key volume
 	hfPdl = 0x11 // half-pedal adjust
 	sfPdl = 0x12 // soft-pedal depth
 	smart = 0x20 // virtual technician smart mode
+	toSnd = 0x2F // store to sound
 	uVoic = 0x41 // user voicing
 	uStrT = 0x42 // user stretch tuning
 	uTmpm = 0x43 // user temperament
@@ -166,6 +195,7 @@ const ( // (files, 0x14) file operations
 	fMvNu = 0x09 // file number to rename
 	fRmNu = 0x0A // file number to delete
 	fPgrs = 0x2D // progress during USB formatting
+	fUsbE = 0x2F // USB error
 	fUsNm = 0x40 // directory entry (name part) for file to load from USB
 	fMvNm = 0x49 // directory entry (name part) for file to rename
 	fRmNm = 0x4A // directory entry (name part) for file to delete
@@ -190,6 +220,7 @@ const ( // (smRec, 0x20) sound mode recorder
 	smSel = 0x00 // select sound mode song
 	smPlP = 0x01 // part(s) to play
 	smRcP = 0x02 // part to record to
+	sm_04 = 0x04 //
 	smEra = 0x40 // sound mode song or song parts to erase
 	smPEm = 0x60 // whether part of sound mode song contains a recording
 	smEmp = 0x61 // whether sound mode song contains a recording
@@ -203,8 +234,11 @@ const ( // (pmRec, 0x21) pianist mode recorder
 
 const ( // (auRec, 0x22) USB audio recorder
 	auSel = 0x00 // select USB song
-	//    = 0x20
+	auTrn = 0x13 // song transpose
+	au_20 = 0x20 //
 	auTyp = 0x22 // file type to write
+	auGai = 0x23 // recorder gain level
+	au_30 = 0x30 //
 	auPNm = 0x40 // file name to play
 	auPEx = 0x41 // extension of file name to play
 	auNam = 0x50 // file name to write
@@ -243,11 +277,13 @@ const ( // (hardw, 0x70) user actions on hardware
 
 const ( // (playr, 0x71) player
 	plDur = 0x00 // duration
-	//    = 0x01		// bar/second count
-	//    = 0x02
+	pl_01 = 0x01 // bar/second count
+	pl_02 = 0x02 //
 	plBrC = 0x03 // bar count
 	plBea = 0x04 // beat
 	plVol = 0x07 // playback volume
+	pl_08 = 0x08 //
+	pl_09 = 0x09 //
 	plPla = 0x10 // start playing
 	plRec = 0x11 // start recording
 	plSto = 0x12 // stop recorder/player
@@ -267,5 +303,5 @@ const ( // (rpFce, 0x7E) recorder/player face
 )
 
 const ( // (commu, 0x7E) communication setup
-	// commu = 0x7F // init
+//      commu = 0x7F // init
 )

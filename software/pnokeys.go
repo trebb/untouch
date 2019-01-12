@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 )
 
 var blkKey []uint8 = []uint8{
@@ -15,9 +16,10 @@ var blkKey []uint8 = []uint8{
 	77, 79, 83, 85, 86,
 }
 
-// getPnoKey returns the number of the next key pressed on the piano.
+
+// getPnoKey returns the number of the next key double-pressed on the piano.
 // Key A0 = 1; key C8 = 88.
-func getPnoKey() uint8 {
+func getPnoKey() (k uint8, ok bool) {
 Drain:
 	for {
 		select {
@@ -28,6 +30,37 @@ Drain:
 		}
 	}
 	issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
-	k := <-pnoKeys // key 1 (A0) yields 21
-	return k - 20
+	var key0, key1 uint8
+Key0:
+	for {
+		select {
+		case key0 = <-pnoKeys: // key 1 (A0) yields 21
+			break Key0
+		default:
+			seg14.brth <- struct{}{}
+			time.Sleep(16 * time.Millisecond)
+		}
+	}
+	t0 := time.Now()
+	ok = true
+	issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
+Key1:
+	for {
+		select {
+		case key1 = <-pnoKeys: // key 1 (A0) yields 21
+			break Key1
+		default:
+			seg14.brth <- struct{}{}
+			time.Sleep(16 * time.Millisecond)
+			if time.Since(t0) > 300 * time.Millisecond {
+				ok = false
+				break Key1
+			}
+		}
+	}
+	if key0 != key1 {
+		ok = false
+	}
+	k = key0 - 20
+	return
 }

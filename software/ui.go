@@ -13,13 +13,14 @@ import (
 type msg [256]byte // Big Enough (TM)
 
 var (
-	mbPort = flag.String("mb", "/dev/ttyUSB0", "the serial interface connected to the mainboard")
-
+	mbPort      = flag.String("mb", "/dev/ttyUSB0", "the serial interface connected to the mainboard")
 	rawBytes    = make(chan byte, 1000)
 	notImplMsgs = make(chan string, 100)
 	toMb        = make(chan []byte, 100)
 	pnoKeys     = make(chan uint8, 100)
 )
+
+var seg14 display
 
 func main() {
 	flag.Parse()
@@ -27,18 +28,35 @@ func main() {
 	if err != nil {
 		log.Print(err)
 	}
-	addDuplicateNames()
+	defer seg14.close()
 	go parse()
 	go rxd(*s)
 	go txd(*s)
+	for mbStateItem("mainboardSeen") != 1 {
+		hi()
+		for i := 0; i < 6; i++ {
+			seg14.spn <- spinPattern{runningOutline, []int{7}}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+	issueCmd(regst, rgLoa, 0x0, 0)
+	for {
+		if _, ok := mbStateItemOk("toneGeneratorMode"); !ok {
+			for i := 0; i < 6; i++ {
+				seg14.spn <- spinPattern{runningPointer, []int{7}}
+				time.Sleep(50 * time.Millisecond)
+			}
+			fmt.Print("x ")
+		} else {
+			notify <- "       *"
+			break
+		}
+	}
+	setLocalDefaults()
 	go input()
 	for {
-		select {
-		case x := <-notImplMsgs:
-			fmt.Println(x)
-		default:
-			time.Sleep(time.Millisecond)
-		}
+		x := <-notImplMsgs
+		log.Print("not implemented:", x)
 	}
 }
 
@@ -199,15 +217,6 @@ func issueDtaRq(requests ...request) {
 	toMb <- append(m1, m2...)
 }
 
-func loadRegistration(reg byte) {
-	issueCmd(regst, rgLoa, 0x0, reg)
-	issueDtaRq(
-		request{regst, rgMod, reg, 0x1, 0x0})
-	issueDtaRq(
-		request{regst, rgMod, reg, 0x1, 0x0},
-		request{regst, rgNam, reg, 0x0})
-}
-
 func msgInt16(b []byte) int16 {
 	var r int16
 	buf := bytes.NewReader(b[:2])
@@ -249,17 +258,87 @@ func notImpl(m interface{}, what ...string) {
 	notImplMsgs <- line
 }
 
-func name(tableKey string, i uint8) string {
-	if i >= 0 && i < uint8(len(names[tableKey])) {
+func name(tableKey string, i int) string {
+	if i >= 0 && i < len(names[tableKey]) {
 		return names[tableKey][i]
 	}
-	return fmt.Sprint("undef:", i)
+	return fmt.Sprint(i)
 }
 
-var mbState = make(map[string]int)
+var notify = make(chan string)
+
+func notifyMonitor() {
+	active := false
+	var w int
+	for {
+		select {
+		case s := <-notify:
+			active = true
+			w = 150
+			seg14.w <- s
+		default:
+			time.Sleep(10 * time.Millisecond)
+			if active {
+				w -= 1
+				if w == 0 {
+					active = false
+					seg14.w <- ""
+				}
+			}
+		}
+	}
+}
+
+func init() {
+	go notifyMonitor()
+}
+
+type mbStateUpdateItem struct {
+	key string
+	val int
+}
+
+type mbStateQuery struct {
+	key    string
+	result chan mbStateQueryResult
+}
+
+type mbStateQueryResult struct {
+	val int
+	ok  bool
+}
+
+var (
+	mbStateUpdates = make(chan mbStateUpdateItem)
+	mbStateQueries = make(chan mbStateQuery)
+)
+
+func mbStateMonitor() {
+	var mbState = make(map[string]int)
+	for {
+		select {
+		case in := <-mbStateUpdates:
+			mbState[in.key] = in.val
+		case out := <-mbStateQueries:
+			val, ok := mbState[out.key]
+			out.result <- mbStateQueryResult{val, ok}
+		}
+	}
+}
+
+func init() {
+	go mbStateMonitor()
+}
+
+func mbStateItemOk(key string) (x int, ok bool) {
+	var r = make(chan mbStateQueryResult)
+	mbStateQueries <- mbStateQuery{key, r}
+	result := <-r
+	return result.val, result.ok
+}
 
 func mbStateItem(key string) int {
-	s, ok := mbState[key]
+	s, ok := mbStateItemOk(key)
 	if ok {
 		return s
 	} else {
@@ -271,52 +350,204 @@ func mbStateItem(key string) int {
 func keepMbState(key string, payload interface{}) {
 	switch x := payload.(type) {
 	case byte:
-		mbState[key] = int(x)
-		fmt.Println("NOTICED:", key, name(key, x))
+		mbStateUpdates <- mbStateUpdateItem{key, int(x)}
+		fmt.Println("NOTICED:", key, name(key, int(x)))
 	case int:
-		mbState[key] = x
+		mbStateUpdates <- mbStateUpdateItem{key, x}
 		fmt.Println("NOTICED:", key, "=", x)
 	default:
 		log.Print(payload, "has an unknown type")
 	}
 }
 
-func requestInitialMbData() {
-	issueDtaRq(
-		request{mainF, mTran, 0x0, 0x1, 0x0},
-		request{mainF, mWall, 0x0, 0x1, 0x0},
-		request{mainF, mAOff, 0x0, 0x1, 0x0},
-		request{bluet, btAuV, 0x0, 0x1, 0x0},
-		request{effct, eOnOf, 0x0, 0x1, 0x0},
-		request{revrb, rOnOf, 0x0, 0x1, 0x0},
-		request{revrb, rType, 0x0, 0x1, 0x0},
-		request{revrb, rDpth, 0x0, 0x1, 0x0},
-		request{revrb, rTime, 0x0, 0x1, 0x0},
-		request{pmSet, pmAmb, 0x0, 0x1, 0x0},
-		request{pmSet, pmAmD, 0x0, 0x1, 0x0},
-		request{vTech, smart, 0x0, 0x1, 0x0},
-		request{vTech, tCurv, 0x0, 0x1, 0x0},
-		request{vTech, voicg, 0x0, 0x1, 0x0},
-		request{vTech, dmpRs, 0x0, 0x1, 0x0},
-		request{vTech, dmpNs, 0x0, 0x1, 0x0},
-		request{vTech, strRs, 0x0, 0x1, 0x0},
-		request{vTech, uStRs, 0x0, 0x1, 0x0},
-		request{vTech, cabRs, 0x0, 0x1, 0x0},
-		request{vTech, koEff, 0x0, 0x1, 0x0},
-		request{vTech, fBkNs, 0x0, 0x1, 0x0},
-		request{vTech, hmDly, 0x0, 0x1, 0x0},
-		request{vTech, topBd, 0x0, 0x1, 0x0},
-		request{vTech, dcayT, 0x0, 0x1, 0x0},
-		request{vTech, miTch, 0x0, 0x1, 0x0},
-		request{vTech, streT, 0x0, 0x1, 0x0},
-		request{vTech, tmpmt, 0x0, 0x1, 0x0},
-		request{vTech, keyVo, 0x0, 0x1, 0x0},
-		request{vTech, hfPdl, 0x0, 0x1, 0x0},
-		request{vTech, sfPdl, 0x0, 0x1, 0x0},
-		// request{vTech, vt_0F, 0x0, 0x1, 0x0},
-	)
-	mbState["metronomeOnOff"] = mbState["metronomeOnOff"] // create or leave unchanged
+func pianistSongsItem(i int) pianistSong {
+	c := make(chan pianistSong)
+	pianistSongQueries <- pianistSongQuery{i, c}
+	s := <-c
+	return s
 }
+
+func keepPianistSongsData(n int, d bool) {
+	pianistSongData <- songsBool{n, d}
+}
+
+func keepPianistSongsSeen(n int, d bool) {
+	pianistSongSeen <- songsBool{n, d}
+}
+
+type (
+	songsBool struct {
+		n int
+		d bool
+	}
+	pianistSongQuery struct {
+		n      int
+		result chan pianistSong
+	}
+	pianistSong struct {
+		seen bool
+		data bool
+	}
+	soundSongQuery struct {
+		n      int
+		result chan soundSong
+	}
+	soundSong struct {
+		seen  bool
+		data  bool
+		part1 bool
+		part2 bool
+	}
+)
+
+var (
+	pianistSongSeen    = make(chan songsBool)
+	pianistSongData    = make(chan songsBool)
+	pianistSongQueries = make(chan pianistSongQuery)
+	soundSongSeen      = make(chan songsBool)
+	soundSongData      = make(chan songsBool)
+	soundSongPart1     = make(chan songsBool)
+	soundSongPart2     = make(chan songsBool)
+	soundSongQueries   = make(chan soundSongQuery)
+)
+
+func soundSongsItem(i int) soundSong {
+	c := make(chan soundSong)
+	soundSongQueries <- soundSongQuery{i, c}
+	s := <-c
+	return s
+}
+
+func keepSoundSongsData(n int, d bool) {
+	soundSongData <- songsBool{n, d}
+}
+
+func keepSoundSongsSeen(n int, d bool) {
+	soundSongSeen <- songsBool{n, d}
+}
+
+func keepSoundSongsPart1(n int, d bool) {
+	soundSongPart1 <- songsBool{n, d}
+}
+
+func keepSoundSongsPart2(n int, d bool) {
+	soundSongPart2 <- songsBool{n, d}
+}
+
+func pianistSongsMonitor() {
+	var songs [10]pianistSong
+	for {
+		select {
+		case s := <-pianistSongSeen:
+			songs[s.n].seen = s.d
+		case s := <-pianistSongData:
+			songs[s.n].data = s.d
+		case s := <-pianistSongQueries:
+			s.result <- songs[s.n]
+		}
+	}
+}
+
+func soundSongsMonitor() {
+	var songs [10]soundSong
+	for {
+		select {
+		case s := <-soundSongSeen:
+			songs[s.n].seen = s.d
+		case s := <-soundSongData:
+			songs[s.n].data = s.d
+		case s := <-soundSongPart1:
+			songs[s.n].part1 = s.d
+		case s := <-soundSongPart2:
+			songs[s.n].part2 = s.d
+		case s := <-soundSongQueries:
+			s.result <- songs[s.n]
+		}
+	}
+}
+
+var (
+	userKeySetting      = make(chan int)
+	userKeySettingSeen  = make(chan bool)
+	storeUserKeySetting = make(chan int)
+	clearUserKeySetting = make(chan struct{})
+)
+
+func userKeySettingMonitor() {
+	var n int
+	var seen bool
+	for {
+		select {
+		case <-clearUserKeySetting:
+			seen = false
+		case s := <-storeUserKeySetting:
+			n = s
+			seen = true
+		case userKeySetting <- n:
+		case userKeySettingSeen <- seen:
+		}
+	}
+}
+
+var (
+	storePlayerMsg = make(chan string)
+	getPlayerMsg   = make(chan string)
+)
+
+func playerMsgMonitor() {
+	var msg string
+	for {
+		select {
+		case s := <-storePlayerMsg:
+			msg = s
+		case getPlayerMsg <- msg:
+		}
+	}
+}
+
+var (
+	storeCurrentRecorderState = make(chan int)
+	getCurrentRecorderState   = make(chan int)
+)
+
+func currentRecorderStateMonitor() {
+	var state int
+	for {
+		select {
+		case n := <-storeCurrentRecorderState:
+			state = n
+		case getCurrentRecorderState <- state:
+		}
+	}
+}
+
+var (
+	storeConfirmedUsbSong = make(chan string)
+	getConfirmedUsbSong   = make(chan string)
+)
+
+func confirmedUsbSongMonitor() {
+	var song string
+	for {
+		select {
+		case s := <-storeConfirmedUsbSong:
+			song = s
+			fmt.Println("stored", s)
+		case getConfirmedUsbSong <- song:
+		}
+	}
+}
+
+func init() {
+	go pianistSongsMonitor()
+	go soundSongsMonitor()
+	go userKeySettingMonitor()
+	go playerMsgMonitor()
+	go currentRecorderStateMonitor()
+	go confirmedUsbSongMonitor()
+}
+
+var metronomeBeatTotal int
 
 var actions = map[msg]func(msg){
 	// key contains the bytes 0..6 of the raw message in an otherwise pristine msg
@@ -353,7 +584,16 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mSign}: func(m msg) { keepMbState("rhythmPattern", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) { keepMbState("metronomeVolume", int(m[9])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mBeat}: func(m msg) {
-		fmt.Println("metronome beat", m[9])
+		metronomeBeatTotal += 1
+		p := 8
+		if m[9] < 8 {
+			p = int(m[9]) + 1
+		}
+		if mbStateItem("rhythmPattern") == 0 { // 1/1
+			notify <- fmt.Sprintf("%*d", p+metronomeBeatTotal%2, m[9]+1)
+		} else {
+			notify <- fmt.Sprintf("%*d", p, m[9]+1)
+		}
 	},
 	// 55    AA    00    6E    01    0F
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgOpn}: func(m msg) {
@@ -364,7 +604,6 @@ var actions = map[msg]func(msg){
 				fmt.Println("close registration screen")
 			case 1:
 				fmt.Println("open registration screen")
-				loadRegistration(0x0)
 			default:
 				notImpl(m, "unknown registration screen state")
 			}
@@ -377,7 +616,8 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int(int8(m[9]))) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    14
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fPgrs}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fPgrs}: func(m msg) { notify <- fmt.Sprintf("FMT %3d", m[9]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fUsbE}: func(m msg) { notify <- errors["usbError"] },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvNm}: func(m msg) {
 		fmt.Printf("rename done: USB filename(%d)=%s\n", m[7], m[9:])
 	},
@@ -398,24 +638,26 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, smRec, smPlP}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, smRec, smRcP}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, smRec, smPEm}: func(m msg) {
-		switch m[9] {
+		switch m[7] {
 		case 0:
-			fmt.Println("part", m[7], "empty")
+			keepMbState("soundSongPart1", m[9])
+			keepMbState("soundSongPart1Seen", 1)
 		case 1:
-			fmt.Println("part", m[7], "contains a recording")
-		default:
-			notImpl(m, fmt.Sprint("unknown state of part", m[7]))
+			keepMbState("soundSongPart2", m[9])
+			keepMbState("soundSongPart2Seen", 1)
 		}
 	},
 	// 55    AA    00    6E    01    21
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmRec, pmSel}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmRec, pmSel}: func(m msg) {
+		fmt.Println("Pianist mode song", m[9])
+	},
 	// 55    AA    00    6E    01    22
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, 0x30}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, auPNm}: func(m msg) {
 		fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:])
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, auPEx}: func(m msg) {
-		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", m[9]))
+		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
 	},
 	// 55    AA    00    6E    01    32
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg32, 0x00}: func(m msg) { notImpl(m) },
@@ -439,36 +681,45 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg65, 0x00}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg65, 0x01}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    70
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwUsb}: func(m msg) { keepMbState("UsbThumbDrivePresence", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwHPh}: func(m msg) { keepMbState("phonesPresence", m[9]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwUsb}: func(m msg) {
+		notify <- name("usbThumbDrivePresence", int(m[9]))
+		keepMbState("usbThumbDrivePresence", m[9])
+	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwHPh}: func(m msg) {
+		notify <- name("phonesPresence", int(m[9]))
+		keepMbState("phonesPresence", m[9])
+	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hw_03}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    71
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plDur}: func(m msg) { // really duration?
-		fmt.Println("duration", msgInt16(m[9:11]))
+		fmt.Println("duration1", msgInt16(m[9:11]))
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x01}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_01}: func(m msg) {
+		playerMsg := <-getPlayerMsg
+		seg14.w <- fmt.Sprintf("%-4s%4d", playerMsg, msgInt16(m[9:11]))
 		fmt.Println("bar/second count", msgInt16(m[9:11]))
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x02}: func(m msg) { // really duration?
-		fmt.Println("duration", msgInt16(m[9:11]))
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_02}: func(m msg) { // really duration?
+		fmt.Println("duration2", msgInt16(m[9:11]))
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plBrC}: func(m msg) {
+		currentRecorderState := <-getCurrentRecorderState
+		if currentRecorderState == recording || currentRecorderState == playing {
+			playerMsg := <-getPlayerMsg
+			seg14.w <- fmt.Sprintf("%-4s%4d", playerMsg, msgInt16(m[9:11]))
+		}
 		fmt.Println("bar count", msgInt16(m[9:11]))
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plBea}: func(m msg) {
 		fmt.Println("beat", m[9], msgInt16(m[10:12]))
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x08}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x09}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x11}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, 0x12}: func(m msg) {
-		switch m[9] {
-		case 0x0:
-			fmt.Println("stopped")
-		default:
-			notImpl(m, "unknown stopped mode")
-		}
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_08}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_09}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plRec}: func(m msg) {
+		noticeRecording()
+		fmt.Println("PLAYR:PLREC")
 	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plSto}: func(m msg) { storeCurrentRecorderState <- idle },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plA_B}: func(m msg) {
 		fmt.Println("A-B repeat mode", m[9])
 	},
@@ -542,12 +793,8 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, pmRec, pmEra}: func(m msg) { notImpl(m) },
 	// 55    AA    00    71    01    22
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, auRec, auNam}: func(m msg) {
-		switch m[7] {
-		case 0xFF:
-			fmt.Printf("audio recorder filename=%s\n", m[9:])
-		default:
-			notImpl(m, "unknown audio recorder filename stuff")
-		}
+		storeConfirmedUsbSong <- string(m[9:])
+		fmt.Printf("audio recorder filename=%s\n", m[9:])
 	},
 	// 55    AA    00    71    01    71
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, playr, 0x10}: func(m msg) {
@@ -567,6 +814,20 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    72    01    04
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmb}: func(m msg) { keepMbState("ambienceType", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmD}: func(m msg) { keepMbState("ambienceDepth", int(m[9])) },
+	// 55    AA    00    72    01    05
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlBal}: func(m msg) { keepMbState("dualBalance", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlOcS}: func(m msg) { keepMbState("dualLayerOctaveShift", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlDyn}: func(m msg) { keepMbState("dualDynamics", int(m[9])) },
+	// 55    AA    00    72    01    06
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spBal}: func(m msg) { keepMbState("splitBalance", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spOcS}: func(m msg) { keepMbState("splitLowerOctaveShift", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spPed}: func(m msg) { keepMbState("splitLowerPedal", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spSpP}: func(m msg) { keepMbState("splitSplitPoint", int(m[9])) },
+	// 55    AA    00    72    01    07
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4Bal}: func(m msg) { keepMbState("4handsBalance", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4LOS}: func(m msg) { keepMbState("4handsLeftOctaveShift", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4ROS}: func(m msg) { keepMbState("4handsRightOctaveShift", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4SpP}: func(m msg) { keepMbState("4handsSplitPoint", int(m[9])) },
 	// 55    AA    00    72    01    08
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rOnOf}: func(m msg) { keepMbState("reverbOnOff", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rType}: func(m msg) { keepMbState("reverbType", m[9]) },
@@ -587,7 +848,7 @@ var actions = map[msg]func(msg){
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, regst, rgMod}: func(m msg) {
 		if reg := m[7]; reg <= 0xF {
-			fmt.Println("registration", reg, "is for", name("toneGeneratorMode", m[9]))
+			fmt.Println("registration", reg, "is for", name("toneGeneratorMode", int(m[9])))
 		} else {
 			fmt.Println("unknown registration (mode)", reg)
 		}
@@ -596,16 +857,16 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int(int8(m[9]))) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTone}: func(m msg) { keepMbState("toneControl", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mSpkV}: func(m msg) { keepMbState("speakerVolume", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mLinV}: func(m msg) { keepMbState("line-in level", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mLinV}: func(m msg) { keepMbState("lineInLevel", int(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mWall}: func(m msg) { keepMbState("wallEq", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__06}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__07}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTung}: func(m msg) { keepMbState("tuning", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mDpHl}: func(m msg) { keepMbState("damperHold", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mAOff}: func(m msg) { keepMbState("autoPowerOff", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, m__0C}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mUTon}: func(m msg) {
 		if m[7] < 6 {
-			fmt.Println("user tone control,", name("userToneControl", m[7]), int8(m[9]))
+			fmt.Println("user tone control,", name("userToneControl", int(m[7])), (m[9]))
 		} else {
 			notImpl(m, "unknown user tone control msg")
 		}
@@ -626,21 +887,25 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, miTch}: func(m msg) { keepMbState("minimumTouch", int(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, streT}: func(m msg) { keepMbState("stretchTuning", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, tmpmt}: func(m msg) { keepMbState("temperament", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, vt_0F}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, tmKey}: func(m msg) { keepMbState("temperamentKey", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, keyVo}: func(m msg) { keepMbState("keyVolume", int(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, hfPdl}: func(m msg) { keepMbState("halfPedalAdjust", int(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, sfPdl}: func(m msg) { keepMbState("softPedalDepth", int(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, smart}: func(m msg) { keepMbState("smartModeVt", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uVoic}: func(m msg) {
+		storeUserKeySetting <- int(m[9])
 		fmt.Println("key", m[7], "has user voicing", m[9])
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uStrT}: func(m msg) {
+		storeUserKeySetting <- int(m[9])
 		fmt.Println("key", m[7], "has user stretch", m[9])
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uTmpm}: func(m msg) {
+		storeUserKeySetting <- int(m[9])
 		fmt.Println("key", m[7], "has user temperament", m[9])
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uKeyV}: func(m msg) {
+		storeUserKeySetting <- int(m[9])
 		fmt.Println("key", m[7], "has user key volume", m[9])
 	},
 	// 55    AA    00    72    01    12
@@ -654,7 +919,7 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miTrP}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMul}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMut}: func(m msg) {
-		fmt.Println("MIDI channel", m[7], name("mutedness", m[9]))
+		fmt.Println("MIDI channel", m[7], name("mutedness", int(m[9])))
 	},
 	// 55    AA    00    72    01    14
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsNm}: func(m msg) {
@@ -667,39 +932,45 @@ var actions = map[msg]func(msg){
 		fmt.Printf("delete: USB filename(%d)=%s\n", m[7], m[9:])
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsEx}: func(m msg) {
-		fmt.Printf("load from USB filename extension(%d)=%s\n", m[7], name("fileExt", m[9]))
+		fmt.Printf("load from USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fMvEx}: func(m msg) {
-		fmt.Printf("rename: USB filename extension(%d)=%s\n", m[7], name("fileExt", m[9]))
+		fmt.Printf("rename: USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fRmEx}: func(m msg) {
-		fmt.Printf("delete: USB filename extension(%d)=%s\n", m[7], name("fileExt", m[9]))
+		fmt.Printf("delete: USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
 	},
 	// 55    AA    00    72    01    16
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAud}: func(m msg) { keepMbState("bluetoothAudio", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAuV}: func(m msg) { keepMbState("bluetoothAudioVolume", int(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btMid}: func(m msg) { keepMbState("bluetoothMidi", m[9]) },
 	// 55    AA    00    72    01    17
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, lcdCn, 0x00}:  func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, lcdCn, 0x02}:  func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, lcdCn, 0x00}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, lcdCn, 0x02}: func(m msg) { notImpl(m) },
+	// 55    AA    00    72    01    20
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, smRec, smPlP}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, smRec, smPEm}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, smRec, smEmp}: func(m msg) {
-		fmt.Println("sound mode song", m[7], name("emptiness", m[9]))
+		keepSoundSongsData(int(m[7]), m[9] != 0)
+		keepSoundSongsSeen(int(m[7]), true)
+		fmt.Println("sound mode song", m[7], name("emptiness", int(m[9])))
 	},
 	// 55    AA    00    72    01    21
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmRec, pmEmp}: func(m msg) {
-		fmt.Println("pianist mode song", m[7], name("emptiness", m[9]))
+		keepPianistSongsData(int(m[7]), m[9] != 0)
+		keepPianistSongsSeen(int(m[7]), true)
+		fmt.Println("pianist mode song", m[7], name("emptiness", int(m[9])))
 	},
 	// 55    AA    00    72    01    22
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x13}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x22}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x23}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, 0x30}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auTrn}: func(m msg) { keepMbState("usbPlayerTranspose", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auTyp}: func(m msg) { keepMbState("usbPlayerFileType", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auGai}: func(m msg) { keepMbState("usbPlayerGainLevel", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, au_30}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPNm}: func(m msg) {
 		fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:])
 	},
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPEx}: func(m msg) {
-		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", m[9]))
+		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
 	},
 	// 55    AA    00    72    01    32
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, msg32, 0x02}: func(m msg) { notImpl(m) },

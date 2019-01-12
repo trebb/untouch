@@ -1,35 +1,139 @@
+legend: [UI button] {piano key} <display> (X)=done
+keyboard keys:
+  [mod1]                         shift
+  [mod2]                                    alt
+  [metronome]     M   6D 00 00   4D 00 00   1B 6D 00
+  [registration]  F   66 00 00   46 00 00   1B 66 00
+  [record]        R   72 00 00   52 00 00   1B 72 00
+  [play]          P   70 00 00   50 00 00   1B 70 00
+  [keyboard mode] K   6B 00 00   4B 00 00   1B 6B 00
+  [settings]      S   73 00 00   53 00 00   1B 73 00
+  [actions]       A   61 00 00   41 00 00   1B 61 00
 
-* [keyboard mode (pianist, single, dual, split, 4hands)]
-** [shift]
-*** global sound settings
-* [instrument sound]
-** [shift]
-*** sound 1 (of one or two)
-** [ctrl]
-*** sound 2
+* [metronome] (X)
+** <beat count> ...
+** [metronome]
+* [mod1]+[metronome] (X)
+** <current metronome tempo>
+** {metronome tempo}
+*** <new metronome tempo>
+* [mod2]+[metronome]
+** <current rhythm group>, <current rhythm>
+** {rhythm group} or {rhythm} split keyboard
+*** <new rhythm>, <new rhythm group>
 
-* [virtual technician]
-  
-**** store to sound
-**** smart mode
-**** advanced mode
+* [registration] (X)
+** <current registration>
+** {registration to load}
+*** <new registration>
+* [mod1]+[registration] (X)
+** <"store registration">
+** {registration to store to}
+*** <registration stored to>
+* [mod2]+[registration] (X)
+** <"store to sound?">
+** {yes/cancel}
+*** <"stored to sound"> or <"cancelled">
 
-* [metronome start/stop]
-** [shift]
-*** metronome tempo
-** [ctrl]
-*** metronome time signature
-** ?? (put with other settings)
-*** volume
+* [record]
+  select destination by inserting/removing USB stick
+** <"standby">
+*** [record]
+*** <seconds count> ...
+**** [record]
+* [mod1]+[record]
+   file type = KSO
+** <song name>
+   - fixed string + song number + part letter (upper case = recorded,
+     lower case = empty)
+   - don't offer part 2 if part 1 is empty
+** {song name}
+*** <new song name>
+* [mod2]+[record]
+   file type = SMF
+** <song name>
+   - fixed string + song number + part letter (upper case = recorded,
+     lower case = empty)
+   - don't offer part 2 if part 1 is empty
+** {song name}
+*** <new song name>
+* [mod1]+[mod2]+[record]
+** <erase current part(s)?>
+** {yes/cancel}
+*** <"done">
 
-* [load registration]
-* [shift]
-** store registration
-
-* [record start/stop]
 * [play]
-** [shift]
-*** settings
+  select source by inserting/removing USB stick
+** <seconds count> ...
+** [play]
+*** <"stop">
+* [mod1]+[play]
+** <song name, part 1> to play
+   - fixed string + song number + part letter
+   - initial song is the previously recorded one if any, or the first
+     non-empty one
+** {song name}
+*** <new song name>
+* [mod2]+[play]
+** <song name, part 2> to play
+   - fixed string + song number + part letter
+   - initial song is the previously recorded one if any, or the first
+     non-empty one
+** {song name}
+*** <new song name>
+* [mod1]+[mod2]+[play]
+** <song name, parts 1+2> to play
+   - fixed string + song number + part letter
+   - initial song is the previously recorded one if any, or the first
+     non-empty one
+** {song name}
+*** <new song name>
 
+* [keyboard mode] (X)
+** <current keyboard mode>
+** {keyboard mode} pianist, single, dual, split, 4hands
+*** <new keyboard mode>
+* [mod1]+[keyboard mode] (X)
+** <current sound 1>
+** {sound 1}
+*** <new sound 1>
+* [mod2]+[keyboard mode] (X)
+** <current sound 2> or <"no 2nd sound">
+** {sound 2}
+*** <new sound 2>
 
+* [settings]
+   - settings proper
+   - metronome volume
+   - recorder gain level
+   - audio recorder file type (WAV, MP3)
+   - USB player volume
+   - USB player transpose
+** <"settings">
+** {setting} black key
+*** <setting name>, <setting value>
+*** {setting value} middle D = 0
+**** <new setting value>
+* [mod1]+[settings]
+** <"virtual technician">
+** {VT setting} black key
+*** <VT name>, <VT value>
+*** {VT value} middle D = 0
+**** <new VT value>
+* [mod2]+[settings]
+** <"sound 2"> or <"no 2nd sound">
 
+* [actions]
+  - rename registration
+  - rename file
+  - save internal song to USB
+  - load internal song from USB
+  - delete all songs
+  - USB format
+  - factory reset
+
+** <"delete">
+** {song name} to delete
+*** <song name>
+**** {yes/cancel}
+***** <"deleted"> or <"cancelled">

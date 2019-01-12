@@ -3,38 +3,21 @@ package main
 import (
 	"fmt"
 	"golang.org/x/exp/io/i2c"
+	"log"
 )
 
-// func main() {
-// 	disp, err := openDisplay(0x70, 0x71)
-// 	if err != nil {
-// 		fmt.Println("Error", err)
-// 	}
-// 	defer disp.close()
-// 	disp.write("hi klmnop")
-// 	disp.setDots([8]bool{5: true, 7: true})
-// 	time.Sleep(2 * time.Second)
-// 	for {
-// 		disp.spin(ascii14Segment[0x20:], 2, 0, 7)
-// 		disp.dim(0)
-// 		time.Sleep(500 * time.Millisecond)
-// 		disp.hide(true)
-// 		disp.dim(7)
-// 		time.Sleep(500 * time.Millisecond)
-// 		disp.hide(false)
-// 		time.Sleep(500 * time.Millisecond)
-// 	}
-// 	disp.close()
-// }
-
-// TODO: transient message
-
 type display struct {
-	blinkState     byte
-	spinState int
-	buf       [16]byte
-	d0        *i2c.Device
-	d1        *i2c.Device
+	blinkState        byte
+	spinState         int
+	breatheState      int
+	defaultBrightness int
+	waxing            bool
+	buf               [16]byte
+	d0                *i2c.Device
+	d1                *i2c.Device
+	w                 chan string
+	brth              chan struct{}
+	spn               chan spinPattern
 }
 
 func openDisplay(addr0 int, addr1 int) (d display, err error) {
@@ -46,6 +29,9 @@ func openDisplay(addr0 int, addr1 int) (d display, err error) {
 	if err != nil {
 		return
 	}
+	d.w = make(chan string)
+	d.brth = make(chan struct{})
+	d.spn = make(chan spinPattern)
 	d.d0 = d0
 	d.d1 = d1
 	d.d0.Write([]byte{0x21})
@@ -60,9 +46,50 @@ func (d *display) close() {
 	d.d1.Close()
 }
 
+func (d *display) displayMonitor() {
+	for {
+		select {
+		case s := <-d.w:
+			d.write(s)
+		case <-d.brth:
+			d.breathe()
+		case p := <-d.spn:
+			d.spin(p)
+		}
+	}
+}
+
+func init() {
+	var err error
+	seg14, err = openDisplay(0x70, 0x71)
+	if err != nil {
+		log.Print(err)
+	}
+	seg14.defaultBrightness = 0xC
+	go seg14.displayMonitor()
+}
+
 func (d *display) write(txt string) {
-	for i, c := range fmt.Sprintf("%-8s", txt)[:8] {
+	d.dim(d.defaultBrightness)
+	var dotlessTxt [8]byte
+	var dots [8]bool
+	i := 0
+	for _, c := range []byte(txt) {
+		if c == "."[0] && i > 0 {
+			dots[i-1] = true
+		} else {
+			dotlessTxt[i] = c
+			i++
+		}
+		if i >= 8 {
+			break
+		}
+	}
+	for i, c := range fmt.Sprintf("%-8s", dotlessTxt)[:8] {
 		shape := ascii14Segment[c]
+		if dots[i] {
+			shape |= ascii14Segment[0x0E] // '.'
+		}
 		d.buf[2*i] = byte(shape & 0x00FF)
 		d.buf[2*i+1] = byte(shape >> 8)
 	}
@@ -71,6 +98,7 @@ func (d *display) write(txt string) {
 }
 
 func (d *display) setDots(pat [8]bool) {
+	d.dim(d.defaultBrightness)
 	for i, dot := range pat {
 		if dot {
 			d.buf[2*i+1] |= 0x40
@@ -82,12 +110,18 @@ func (d *display) setDots(pat [8]bool) {
 	d.d1.WriteReg(0, d.buf[8:])
 }
 
-func (d *display) spin(spinMap []uint16, positions ...int) {
-	if d.spinState > len(spinMap)-1 {
+type spinPattern struct {
+	spinMap   []uint16
+	positions []int
+}
+
+func (d *display) spin(s spinPattern) {
+	d.dim(d.defaultBrightness)
+	if d.spinState > len(s.spinMap)-1 {
 		d.spinState = 0
 	}
-	shape := spinMap[d.spinState]
-	for _, pos := range positions {
+	shape := s.spinMap[d.spinState]
+	for _, pos := range s.positions {
 		d.buf[2*pos] = byte(shape & 0x00FF)
 		d.buf[2*pos+1] = byte(shape >> 8)
 	}
@@ -96,21 +130,37 @@ func (d *display) spin(spinMap []uint16, positions ...int) {
 	d.spinState += 1
 }
 
+func (d *display) breathe() {
+	if d.waxing {
+		d.breatheState++
+	} else {
+		d.breatheState--
+	}
+	d.dim(d.breatheState)
+	switch d.breatheState {
+	case 0:
+		d.waxing = true
+	case d.defaultBrightness:
+		d.waxing = false
+	}
+}
+
 func (d *display) dim(b int) {
 	brightness := byte(b & ^0xF0)
 	d.d0.Write([]byte{0xE0 | brightness})
 	d.d1.Write([]byte{0xE0 | brightness})
+	d.breatheState = int(brightness)
 }
 
-func (d *display) hide(y bool) {
-	if y {
-		d.blinkState = (d.blinkState | 0x80) & ^byte(0x01)
-	} else {
-		d.blinkState = d.blinkState | 0x81
-	}
-	d.d0.Write([]byte{d.blinkState})
-	d.d1.Write([]byte{d.blinkState})
-}
+// func (d *display) hide(y bool) {
+// 	if y {
+// 		d.blinkState = (d.blinkState | 0x80) & ^byte(0x01)
+// 	} else {
+// 		d.blinkState = d.blinkState | 0x81
+// 	}
+// 	d.d0.Write([]byte{d.blinkState})
+// 	d.d1.Write([]byte{d.blinkState})
+// }
 
 var runningNeedle []uint16 = []uint16{
 	// the individual arms of "*"
