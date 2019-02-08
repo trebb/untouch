@@ -8,21 +8,19 @@
 
 \def\img#1{
   \openin\legends=#1
-  \fileline
-  
-  %% \section{\fileline}
+  \fileline% "\section{...}"
   \begin{tikzpicture}
     \tikzset{%
       White/.style = {%
         node distance = 0cm and 0cm,
         draw,
-        minimum width = .5cm,
-        minimum height = 2.5cm,
+        minimum width = .47cm,
+        minimum height = 1.7cm,
         inner sep = 0pt},
       Black/.style = {%
         fill = black,
-        minimum width = .3cm,
-        minimum height = 1.5cm,
+        minimum width = .25cm,
+        minimum height = .91cm,
         inner sep = 0pt,
         anchor = north},
     }
@@ -104,6 +102,24 @@
   \closein\legends
 }
 
+\DeclareRobustCommand{\UiKey}[1]{%
+  \hspace{1pt}%
+  \raisebox{-.2cm}{%
+    \begin{tikzpicture}%
+      \tikzset{%
+        UiKey/.style = {%
+          rounded corners,
+          double,
+          draw,
+          minimum width = .6cm,
+          minimum height = .6cm,
+          inner sep = 1pt,
+          font = \normalfont\sffamily\small}},
+      \node[UiKey] {#1};%
+    \end{tikzpicture}%
+  }%
+}
+
 \begin{document}
 \raggedbottom
 \sffamily
@@ -111,8 +127,9 @@
 \img {keyboard_mode.tex}
 \img {pianist_mode_sounds.tex}
 \img {sound_mode_sounds.tex}
+\section{Metronome on/off --- \UiKey{MET}}
 \img {tempo.tex}
-\section{Rhythm Groups}
+\section{Rhythm Groups --- \UiKey{II}\UiKey{MET}}
 \img {rhythm_groups_time_signature.tex}
 \img {rhythm_groups_8beat.tex}
 \img {rhythm_groups_8beat_rock.tex}
@@ -127,16 +144,73 @@
 \img {rhythm_groups_latin_traditional.tex}
 \img {settings.tex}
 \img {ambience_type.tex}
+\img {ambience_depth.tex}
 \img {reverb_type.tex}
+\img {reverb_depth.tex}
+\img {effects_type.tex}
+\img {effects_parameter.tex}
+\img {transpose.tex}
+\img {balance.tex}
+\img {layer_octave_shift.tex}
+\img {left_lower_octave_shift.tex}
+\subsection{Split Point (split mode, 4hands mode)  --- \UiKey{SET}D$\flat$3(A0--C8)}
+\subsection{Layer Dynamics, Lower  Pedal, Right Octave Shift --- \UiKey{SET}B$\flat$2}
+\img {layer_dynamics.tex}
+\img {lower_pedal.tex}
+\img {right_octave_shift.tex}
+
 \img {tuning.tex}
+\img {damper_hold.tex}
 \img {tone_control.tex}
+\img {speaker_volume.tex}
+\img {line_in_level.tex}
+\img {wall_eq.tex}
 \img {shs_mode.tex}
 \img {phones_type.tex}
+\img {phones_volume.tex}
+\img {bluetooth_midi.tex}
+\img {bluetooth_audio.tex}
+\img {bluetooth_audio_volume.tex}
+\img {midi_channel.tex}
+\img {local_control.tex}
+\img {transmit_program_number.tex}
 \img {multi_timbral_mode.tex}
 \img {auto_power_off.tex}
+\img {metronome_volume.tex}
+\img {recorder_gain_level.tex}
+\img {recorder_file_type.tex}
+\img {usb_player_transpose.tex}
 \img {virtual_technician.tex}
 \img {virtual_technician_smart_mode.tex}
+\img {virtual_technician_touch_curve.tex}
+\img {virtual_technician_voicing.tex}
+\img {virtual_technician_user_voicing.tex}
+\img {virtual_technician_damper_resonance.tex}
+\img {virtual_technician_damper_noise.tex}
+\img {virtual_technician_string_resonance.tex}
+\img {virtual_technician_undamped_string_resonance.tex}
+\img {virtual_technician_cabinet_resonance.tex}
+\img {virtual_technician_key_off_effect.tex}
+\img {virtual_technician_fall_back_noise.tex}
+\img {virtual_technician_hammer_delay.tex}
+\img {virtual_technician_topboard.tex}
+\img {virtual_technician_decay_time.tex}
+\img {virtual_technician_minimum_touch.tex}
+\img {virtual_technician_stretch_tuning.tex}
+\img {virtual_technician_user_tuning.tex}
+\img {virtual_technician_temperament.tex}
+\img {virtual_technician_user_temperament.tex}
+\img {virtual_technician_temperament_key.tex}
+\img {virtual_technician_key_volume.tex}
+\img {virtual_technician_user_key_volume.tex}
+\img {virtual_technician_half_pedal_adjust.tex}
+\img {virtual_technician_soft_pedal_depth.tex}
+
+
 \img {registration.tex}
+\section{Store to Sound --- \UiKey{II}\UiKey{REG}}
 \img {immediate_action.tex}
+\section{Current Song --- \UiKey{REC} (record), \UiKey{Pl} (play)}
 \img {songs.tex}
+\section{Erase Song Parts --- \UiKey{I}\UiKey{II}\UiKey{REC}}
 \end{document}
