@@ -1,9 +1,17 @@
 \documentclass[landscape,fontsize=8pt,DIV=36,BCOR=10mm,twoside,a4paper,footinclude,headinclude]{scrartcl}
 \usepackage{tikz}
 \usetikzlibrary{positioning}
+\usepackage{etoolbox}
+\usepackage{multicol}
 
-\def\legend{}
-\def\fileline{\ifeof\legends\def\legend{}\else\read\legends to \legend\fi\legend}
+\newcommand\myifblank{\expandafter\ifblank\expandafter}
+\catcode\endlinechar=9 %
+\def\fileline{%
+  \def\legend{}
+  \ifeof\legends\def\legend{}\else\read\legends to\legend\fi
+  \myifblank{\legend}{\tiny$\otimes$}{\legend}
+}
+
 \newread\legends
 
 \def\img#1{
@@ -135,12 +143,37 @@
 \raggedbottom
 \sffamily
 
+\begin{multicols}{5}
+  \begin{minipage}{4cm}
+    \begin{center}
+      \UiKey{\DO}\UiKey{\SND}\UiKey{\MET}\UiKey{\REG}\UiKey{\SET}\\
+      \UiKey{\I}\hspace{.35cm}\UiKey{\REC}\UiKey{\PL}\hspace{.35cm}\UiKey{\II}
+    \end{center}
+  \end{minipage}
+  \columnbreak\\
+
+  \UiKey{\MET} Metronome/Drum\\
+  \UiKey{\REC} Record\\
+  \UiKey{\PL}  Play\\
+  \UiKey{\SND} Keyboard Sounds\\
+  \UiKey{\REG} Registrations\\
+  \UiKey{\SET} Settings\\
+  \UiKey{\DO}  Actions\\
+  \UiKey{\I}, \UiKey{\II}  Modifiers
+\end{multicols}
+
+\begin{multicols}{4}
+  \tableofcontents
+\end{multicols}
+
+\section{Sounds}
 \img {keyboard_mode.tex}
 \img {pianist_mode_sounds.tex}
 \img {sound_mode_sounds.tex}
-\section{Metronome on/off --- \UiKey{\MET}}
+\section{Metronome/Drum Patterns}
+\subsection[On/Off]{On/Off --- \UiKey{\MET}}
 \img {tempo.tex}
-\section{Rhythm Groups --- \UiKey{\II}\UiKey{\MET}}
+\subsection[Rhythm Groups]{Rhythm Groups --- \UiKey{\II}\UiKey{\MET}}
 \img {rhythm_groups_time_signature.tex}
 \img {rhythm_groups_8beat.tex}
 \img {rhythm_groups_8beat_rock.tex}
@@ -164,8 +197,8 @@
 \img {balance.tex}
 \img {layer_octave_shift.tex}
 \img {left_lower_octave_shift.tex}
-\subsection{Split Point (split mode, 4hands mode)  --- \UiKey{\SET}D$\flat$3(A0--C8)}
-\subsection{Layer Dynamics, Lower  Pedal, Right Octave Shift --- \UiKey{SET}B$\flat$2}
+\subsection[Split Point (Split Mode, 4Hands Mode)]{Split Point (Split Mode, 4Hands Mode)  --- \UiKey{\SET}D$\flat$3(A0--C8)}
+\subsection[Two-Sound Dynamics/Pedal/Octave Shift]{Two-Sound Dynamics/Pedal/Octave Shift --- \UiKey{\SET}B$\flat$2}
 \img {layer_dynamics.tex}
 \img {lower_pedal.tex}
 \img {right_octave_shift.tex}
@@ -219,9 +252,10 @@
 
 
 \img {registration.tex}
-\section{Store to Sound --- \UiKey{\II}\UiKey{\REG}}
+\section[Store to Sound]{Store to Sound --- \UiKey{\II}\UiKey{\REG}}
 \img {immediate_action.tex}
-\section{Current Song --- \UiKey{\REC} (record), \UiKey{Pl} (play)}
+\section{Recorder}
+\subsection[Store to Sound]{Current Song--- \UiKey{\REC} (record), \UiKey{\PL} (play)}
 \img {songs.tex}
-\section{Erase Song Parts --- \UiKey{\I}\UiKey{\II}\UiKey{\REC}}
+\subsection[Erase Song Parts]{Erase Song Parts --- \UiKey{\I}\UiKey{\II}\UiKey{\REC}}
 \end{document}
