@@ -1,8 +1,11 @@
-\documentclass[landscape,fontsize=8pt,DIV=36,BCOR=10mm,twoside,a4paper,footinclude,headinclude]{scrartcl}
+\documentclass[landscape,fontsize=8pt,DIV=28,BCOR=15mm,twoside,a4paper,footinclude,headinclude]{scrartcl}
+\usepackage[tocflat]{tocstyle}
 \usepackage{tikz}
 \usetikzlibrary{positioning}
 \usepackage{etoolbox}
 \usepackage{multicol}
+\usepackage{sfmath}
+\renewcommand*{\familydefault}{\sfdefault}
 
 \newcommand\myifblank{\expandafter\ifblank\expandafter}
 \catcode\endlinechar=9 %
@@ -48,8 +51,8 @@
     {\fileline}; 
     \node[font = \small,below] at (White-0-7.south)
     {3};
-    % \node[font = \small,above] at
-    % (White-0-7.south) {B0};
+    \node[font = \small,above] at
+    (White-0-7.south) {B0};
 
     \def\noteindex{4}%
     \foreach \octave [remember = \octave as \lastoctave (initially 0)] in {1,...,7}{%
@@ -96,6 +99,8 @@
         \xdef\noteindex{\number\numexpr\noteindex+2\relax}%
         \or% B
         \xdef\noteindex{\number\numexpr\noteindex+1\relax}%
+        \node[font = \small,above] at
+        (White-\octave-\White.south) {\note\octave};
         \fi
       }
     }
@@ -111,7 +116,6 @@
 }
 
 \DeclareRobustCommand{\UiKey}[1]{%
-  \hspace{1pt}%
   \raisebox{-.2cm}{%
     \begin{tikzpicture}%
       \tikzset{%
@@ -122,11 +126,22 @@
           minimum width = .6cm,
           minimum height = .6cm,
           inner sep = 1pt,
-          font = \normalfont\sffamily\small}},
+          font = \normalfont\small}},
       \node[UiKey] {#1};%
     \end{tikzpicture}%
   }%
+  \hspace{1pt}%
 }
+
+\DeclareRobustCommand{\PKey}[2]{%
+  \renewcommand{\arraystretch}{.5}%
+  \tabcolsep0pt%
+  \normalfont%
+  \begin{tabular}[t]{l}%
+    #1\\
+    \small#2\\
+  \end{tabular}%
+}%
 
 % UI key legends
 \def\DO{X}
@@ -140,18 +155,11 @@
 \def\SND{K}
 
 \begin{document}
+\usetocstyle{allwithdot}
 \raggedbottom
-\sffamily
 
 \begin{multicols}{5}
-  \begin{minipage}{4cm}
-    \begin{center}
-      \UiKey{\DO}\UiKey{\SND}\UiKey{\MET}\UiKey{\REG}\UiKey{\SET}\\
-      \UiKey{\I}\hspace{.35cm}\UiKey{\REC}\UiKey{\PL}\hspace{.35cm}\UiKey{\II}
-    \end{center}
-  \end{minipage}
-  \columnbreak\\
-
+  \noindent
   \UiKey{\MET} Metronome/Drum\\
   \UiKey{\REC} Record\\
   \UiKey{\PL}  Play\\
@@ -159,18 +167,21 @@
   \UiKey{\REG} Registrations\\
   \UiKey{\SET} Settings\\
   \UiKey{\DO}  Actions\\
-  \UiKey{\I}, \UiKey{\II}  Modifiers
-\end{multicols}
+  \UiKey{\I}, \UiKey{\II}  Modifiers\\[1em]
+  \vfill
+  \noindent
+  \fbox{
+    \parbox{3.44cm}{
+      \UiKey{\DO}\UiKey{\SND}\UiKey{\MET}\UiKey{\REG}\UiKey{\SET}\\
+      \UiKey{\I}\hspace{.35cm}\UiKey{\REC}\UiKey{\PL}\hspace{.35cm}\UiKey{\II}
+    }
+  }
+  \vfill
 
-\begin{multicols}{4}
   \tableofcontents
 \end{multicols}
 
-\section{Sounds}
-\img {keyboard_mode.tex}
-\img {pianist_mode_sounds.tex}
-\img {sound_mode_sounds.tex}
-\section{Metronome/Drum Patterns}
+\section[Metronome/Drum]{Metronome/Drum Patterns}
 \subsection[On/Off]{On/Off --- \UiKey{\MET}}
 \img {tempo.tex}
 \subsection[Rhythm Groups]{Rhythm Groups --- \UiKey{\II}\UiKey{\MET}}
@@ -186,6 +197,16 @@
 \img {rhythm_groups_triplet.tex}
 \img {rhythm_groups_jazz.tex}
 \img {rhythm_groups_latin_traditional.tex}
+
+\section{Recorder}
+\subsection[Record Song]{Record Song --- \UiKey{\REC}}
+\subsection[Play Song]{Play Song --- \UiKey{\PL} (play)}
+\img {songs.tex}
+\subsection[Erase Song Parts]{Erase Song Parts --- \UiKey{\I}\UiKey{\II}\UiKey{\REC}}
+\section{Sounds}
+\img {keyboard_mode.tex}
+\img {pianist_mode_sounds.tex}
+\img {sound_mode_sounds.tex}
 \img {settings.tex}
 \img {ambience_type.tex}
 \img {ambience_depth.tex}
@@ -195,10 +216,10 @@
 \img {effects_parameter.tex}
 \img {transpose.tex}
 \img {balance.tex}
-\img {layer_octave_shift.tex}
-\img {left_lower_octave_shift.tex}
-\subsection[Split Point (Split Mode, 4Hands Mode)]{Split Point (Split Mode, 4Hands Mode)  --- \UiKey{\SET}D$\flat$3(A0--C8)}
-\subsection[Two-Sound Dynamics/Pedal/Octave Shift]{Two-Sound Dynamics/Pedal/Octave Shift --- \UiKey{\SET}B$\flat$2}
+\subsection[Octave Shift]{Octave Shift --- \UiKey{\SET}\PKey{A$2^\flat$}{24}}
+\img {layer_octave_shift.tex} \img {left_lower_octave_shift.tex}
+\subsection[Split Point]{Split Point (Split Mode, 4Hands Mode)  --- \UiKey{\SET}\PKey{D$3^\flat$}{29}(\PKey{A0}{1}--\PKey{C8}{88})}
+\subsection[Two-Sound Parameter]{Two-Sound Parameter --- \UiKey{\SET}\PKey{B$2^\flat$}{26}}
 \img {layer_dynamics.tex}
 \img {lower_pedal.tex}
 \img {right_octave_shift.tex}
@@ -224,6 +245,7 @@
 \img {recorder_gain_level.tex}
 \img {recorder_file_type.tex}
 \img {usb_player_transpose.tex}
+
 \img {virtual_technician.tex}
 \img {virtual_technician_smart_mode.tex}
 \img {virtual_technician_touch_curve.tex}
@@ -250,12 +272,8 @@
 \img {virtual_technician_half_pedal_adjust.tex}
 \img {virtual_technician_soft_pedal_depth.tex}
 
-
+\section[Store Settings]{Store Settings}
 \img {registration.tex}
-\section[Store to Sound]{Store to Sound --- \UiKey{\II}\UiKey{\REG}}
+\subsection[Store to Sound]{Store to Sound --- \UiKey{\II}\UiKey{\REG}}
 \img {immediate_action.tex}
-\section{Recorder}
-\subsection[Store to Sound]{Current Song--- \UiKey{\REC} (record), \UiKey{\PL} (play)}
-\img {songs.tex}
-\subsection[Erase Song Parts]{Erase Song Parts --- \UiKey{\I}\UiKey{\II}\UiKey{\REC}}
 \end{document}
