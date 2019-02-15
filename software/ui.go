@@ -100,7 +100,7 @@ func txd(port serial.Port) {
 
 var ( // message headers
 	cmdVnHead = []byte{hdr0, hdr1, hdr2, cmdVn} // vanilla UI command
-	cmdAcHead = []byte{hdr0, hdr1, hdr2, cmdAc} // UI command that expects acknoledgement
+	cmdAcHead = []byte{hdr0, hdr1, hdr2, cmdAc} // UI command that expects acknowledgement
 	dtaRqHead = []byte{hdr0, hdr1, hdr2, dtaRq} // data request
 )
 
