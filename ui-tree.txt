@@ -10,6 +10,8 @@ keyboard keys:
   [settings]      S   73 00 00   53 00 00   1B 73 00
   [actions]       A   61 00 00   41 00 00   1B 61 00
 
+=== piano mode (power on, no pedals pressed) ===-
+
 * [metronome] (X)
 ** <beat count> ...
 ** [metronome]
@@ -137,3 +139,42 @@ keyboard keys:
 *** <song name>
 **** {yes/cancel}
 ***** <"deleted"> or <"cancelled">
+
+
+==== update mode (power on + pedals 1, 2, 3) ===
+
+* [actions] <"update">
+* [mod1]+[actions] <"cancelled">
+
+==== service mode (power on + pedals 1, 2) ===
+
+* [] <"mode  0: LCD">
+* [keyboard mode] <"mode  1: pedal, volume, keyboard, midi, usb-midi">
+** {pedal X} <X, value>
+** {volume X} <X, value>
+* [record] <"mode  2: effect, reverb">
+* [mod1]+[play] <"mode  3: TG all channel">
+* [mod1]+[record] <"mode  4: L/R">
+* [mod2]+[record] <"mode  5: EQ level">
+* [metronome] <"mode  6: usb device, bluetooth audio">
+** <"check usb">
+** <"check bluetooth audio">
+** <"set product">
+** <"set fact A">
+** <"set fact B">
+* [record] <"mode  7: max touch">
+* [play] <"mode  8: tone check">
+* [mod1]+[keyboard mode] <"mode  9: keyboard S1, S2, S3, A/D raw value">
+** {key} <key, switch, switch state>
+** {pedal X} <X, value>
+** {volume X} <X, value>
+* [mod1][settings] <"mode 10: wave checksum">
+* [mod2]+[keyboard mode] <"mode 11: all key on">
+** {all keys} [check] <result>
+* [settings] <"mode 12: key adjust">
+* [mod2]+[settings] <"mode 13: touch select">
+* <"mode 14: version"> (no mainboard communication)
+
+==== firmware version mode (power on + pedals 2, 3) ===
+
+<ROM name, version, destination, checksum>

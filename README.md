@@ -9,3 +9,16 @@ being used for additional input.
 
 It has been devoloped on a Kawai NV10 hybrid piano, but can be
 expected to work on the CA78 and CA98 digital pianos as well.
+
+## Design decisions
+
+- Boot up faster than the piano mainboard.
+
+- On startup, always load registration 0. Never be outside a
+  registration.
+
+- No input menus, only short key sequences.
+
+- Switch off the display whenever possible.
+
+- Lower default metronome volume.
