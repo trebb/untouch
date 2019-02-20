@@ -10,7 +10,7 @@ type display struct {
 	blinkState        byte
 	spinState         int
 	breatheState      int
-	defaultBrightness int
+	defaultBrightness int	// Ox0..0xF
 	waxing            bool
 	buf               [16]byte
 	d0                *i2c.Device

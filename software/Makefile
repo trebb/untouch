@@ -11,14 +11,14 @@ ui-btn: $(SRC_BTN)
 	go get -d -x
 	go build $^
 	mv ui ui-btn
-	-ssh pi@raspberrypi 'killall ui-btn'
-	scp $@ pi@raspberrypi:/home/pi/
+	# -ssh pi@raspberrypi 'killall ui-btn'
+	# scp $@ pi@raspberrypi:/home/pi/
 
 ui-cli: $(SRC_CLI)
 	go get -d -x
 	go build $^
 	mv ui ui-cli
-	scp $@ pi@raspberrypi:/home/pi/
+	# scp $@ pi@raspberrypi:/home/pi/
 
 clean:
 	go clean
