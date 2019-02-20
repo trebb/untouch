@@ -10,18 +10,19 @@ keyboard keys:
   [settings]      S   73 00 00   53 00 00   1B 73 00
   [actions]       A   61 00 00   41 00 00   1B 61 00
 
-=== piano mode (power on, no pedals pressed) ===-
+=== piano mode (power on, no pedals pressed) ===
 
 * [metronome] (X)
-** <beat count> ...
+** start; <beat count> ...
 ** [metronome]
+*** stop
 * [mod1]+[metronome] (X)
 ** <current metronome tempo>
-** {metronome tempo}
+** {new metronome tempo}
 *** <new metronome tempo>
 * [mod2]+[metronome]
 ** <current rhythm group>, <current rhythm>
-** {rhythm group} or {rhythm} split keyboard
+** {new rhythm group} or {new rhythm} split keyboard
 *** <new rhythm>, <new rhythm group>
 
 * [registration] (X)
@@ -38,18 +39,19 @@ keyboard keys:
 *** <"stored to sound"> or <"cancelled">
 
 * [record]
-  select destination by inserting/removing USB stick
+  (select destination by inserting/removing USB stick)
 ** <"standby">
 *** [record]
-*** <seconds count> ...
+*** start; <seconds count> ...
 **** [record]
+***** <"stopped">
 * [mod1]+[record]
    file type = KSO
 ** <song name>
    - fixed string + song number + part letter (upper case = recorded,
      lower case = empty)
    - don't offer part 2 if part 1 is empty
-** {song name}
+** {new song name}
 *** <new song name>
 * [mod2]+[record]
    file type = SMF
@@ -57,18 +59,18 @@ keyboard keys:
    - fixed string + song number + part letter (upper case = recorded,
      lower case = empty)
    - don't offer part 2 if part 1 is empty
-** {song name}
+** {new song name}
 *** <new song name>
 * [mod1]+[mod2]+[record]
 ** <erase current part(s)?>
 ** {yes/cancel}
-*** <"done">
+*** <"done">/<"cancelled">
 
 * [play]
-  select source by inserting/removing USB stick
-** <seconds count> ...
+  (select source by inserting/removing USB stick)
+** <"playing">, <seconds count> ...
 ** [play]
-*** <"stop">
+*** <"stopped">
 * [mod1]+[play]
 ** <song name, part 1> to play
    - fixed string + song number + part letter
@@ -93,15 +95,15 @@ keyboard keys:
 
 * [keyboard mode] (X)
 ** <current keyboard mode>
-** {keyboard mode} pianist, single, dual, split, 4hands
+** {new keyboard mode} pianist, single, dual, split, 4hands
 *** <new keyboard mode>
 * [mod1]+[keyboard mode] (X)
 ** <current sound 1>
-** {sound 1}
+** {new sound 1}
 *** <new sound 1>
 * [mod2]+[keyboard mode] (X)
 ** <current sound 2> or <"no 2nd sound">
-** {sound 2}
+** {new sound 2}
 *** <new sound 2>
 
 * [settings]
@@ -114,13 +116,13 @@ keyboard keys:
 ** <"settings">
 ** {setting} black key
 *** <setting name>, <setting value>
-*** {setting value} middle D = 0
+*** {setting value} (middle D = 0)
 **** <new setting value>
 * [mod1]+[settings]
 ** <"virtual technician">
 ** {VT setting} black key
 *** <VT name>, <VT value>
-*** {VT value} middle D = 0
+*** {VT value} (middle D = 0)
 **** <new VT value>
 * [mod2]+[settings]
 ** <"sound 2"> or <"no 2nd sound">
