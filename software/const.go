@@ -41,10 +41,10 @@ const ( // principal topics of mainboard operation
 	servi = 0x60 // service screen
 	romId = 0x61 // ROM identification
 	updat = 0x64 // update
-	msg65 = 0x65 // ???
+	mrket = 0x65 // model, market destination
 	hardw = 0x70 // user action on hardware: connecting devices, pressing keys
 	playr = 0x71 // player
-	rpFce = 0x7E // recorder/player face
+	pFace = 0x7E // recorder/player face
 	commu = 0x7F // communication setup
 )
 
@@ -245,27 +245,53 @@ const ( // (auRec, 0x22) USB audio recorder
 )
 
 const ( // (servi, 0x60) service
-	srM00 = 0x00 // service mode 00
-	srM01 = 0x01 // service mode 01
-	srM02 = 0x02 // service mode 02
-	srM03 = 0x03 // service mode 03
-	srM04 = 0x04 // service mode 04
-	srM05 = 0x05 // service mode 05
-	srM06 = 0x06 // service mode 06
-	srM07 = 0x07 // service mode 07
-	srM08 = 0x08 // service mode 08
-	srM09 = 0x09 // service mode 09
-	srM10 = 0x0A // service mode 10
-	srM11 = 0x0B // service mode 11
-	srM12 = 0x0C // service mode 12
-	srM13 = 0x0D // service mode 13
-	srM14 = 0x0E // service mode 14
+	// service mode selection
+	sMLcd = 0x00 // service mode 00, LCD
+	sMPdV = 0x01 // service mode 01, pedal, volume, keyboard, midi, USB midi
+	sMEfR = 0x02 // service mode 02, effect, reverb
+	sMTgA = 0x03 // service mode 03, TG all channel
+	sML_R = 0x04 // service mode 04, L/R
+	sMEqL = 0x05 // service mode 05, EQ level
+	sMUBt = 0x06 // service mode 06, USB device, bluetooth audio
+	sMMTc = 0x07 // service mode 07, max touch
+	sMTCk = 0x08 // service mode 08, tone check
+	sMKRw = 0x09 // service mode 09, keyboard S1, S2, S3; AD raw value
+	sMWCk = 0x0A // service mode 10, wave checksum
+	sMAlK = 0x0B // service mode 11, all key on
+	sMKAd = 0x0C // service mode 12, key adjust
+	sMTcS = 0x0D // service mode 13, touch select
+	sMVer = 0x0E // service mode 14, version (of UI)
+	// service mode in use
+	srPdV = 0x41 // pedal, volume, keyboard, midi, USB midi
+	srEfR = 0x42 // effect, reverb
+	srTgA = 0x43 // TG all channel
+	srL_R = 0x44 // L/R
+	srEqL = 0x45 // EQ level
+	srUBt = 0x46 // USB device, bluetooth audio
+	srMTc = 0x47 // max touch
+	srTCk = 0x48 // tone check
+	srKRw = 0x49 // keyboard S1, S2, S3; AD raw value
+	srWCk = 0x4A // wave checksum
+	srAlK = 0x4B // all key on
+	srKAd = 0x4C // key adjust
+	srTcS = 0x4D // touch select
+)
+
+const ( // (romId, 0x61) ROM identification
+	roNam = 0x00 // ROM name
+	roVer = 0x01 // ROM version string
+	roCkS = 0x02 // checksum
 )
 
 const ( // (updat, 0x64) update
 	upErr = 0x00 // error: no USB
 	upNow = 0x02 // update now
 	upLtr = 0x03 // update later
+)
+
+const ( // (mrket = 0x65) model, market destination
+	mkMdl = 0x00 // model (8=NV10)
+	mkDst = 0x01 // market destination (1=EU)
 )
 
 const ( // (hardw, 0x70) user actions on hardware
@@ -292,16 +318,19 @@ const ( // (playr, 0x71) player
 	plPbM = 0x18 // playback mode
 )
 
-const ( // (rpFce, 0x7E) recorder/player face
-	rpClo = 0x00 // close player/recorder
-	rpInt = 0x02 // internal recorder/player
-	rpUsb = 0x03 // USB recorder/player
-	rpDem = 0x05 // demo songs
-	rpLes = 0x07 // lesson songs
-	rpCon = 0x08 // concert magic
-	rpPno = 0x09 // piano music
+const ( // (pFace, 0x7E) piano/recorder/player face
+	pFClo = 0x00 // close player/recorder
+	pFInt = 0x02 // internal recorder/player
+	pFUsb = 0x03 // USB recorder/player
+	pFDem = 0x05 // demo songs
+	pFLes = 0x07 // lesson songs
+	pFCon = 0x08 // concert magic
+	pFPno = 0x09 // piano music
 )
 
-const ( // (commu, 0x7E) communication setup
-//      commu = 0x7F // init
+const ( // (commu, 0x7F) communication setup
+	// commu = 0x7F // init
+	coSvc = 0x00 // service screen
+	coVer = 0x01 // version screen
+	coUpd = 0x04 // update screen
 )

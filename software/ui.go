@@ -666,20 +666,20 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    6E    01    3F
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, biSng, 0x40}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    60
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x41}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x43}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x46}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x48}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x49}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x4A}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, 0x4D}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srPdV}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTgA}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srUBt}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTCk}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKRw}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srWCk}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    61
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, 0x00}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, 0x01}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, 0x02}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roNam}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roVer}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    65
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg65, 0x00}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, msg65, 0x01}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkMdl}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkDst}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    70
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwUsb}: func(m msg) {
 		notify <- name("usbThumbDrivePresence", int(m[9]))
@@ -724,30 +724,30 @@ var actions = map[msg]func(msg){
 		fmt.Println("A-B repeat mode", m[9])
 	},
 	// 55    AA    00    6E    01    7E
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, rpFce, 0x00}: func(m msg) {
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pFace, 0x00}: func(m msg) {
 		switch m[7] {
-		case rpClo:
+		case pFClo:
 			fmt.Println("close recorder/player")
-		case rpInt:
+		case pFInt:
 			fmt.Println("open internal recorder/player")
-		case rpUsb:
+		case pFUsb:
 			fmt.Println("open USB recorder/player")
-		case rpDem:
+		case pFDem:
 			fmt.Println("open demo song player")
-		case rpLes:
+		case pFLes:
 			fmt.Println("open lesson song player")
-		case rpCon:
+		case pFCon:
 			fmt.Println("open concert magic player")
-		case rpPno:
+		case pFPno:
 			fmt.Println("open piano music player")
 		default:
 			notImpl(m, "unknown recorder/player face request")
 		}
 	},
 	// 55    AA    00    6E    01    7F
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, 0x00}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, 0x01}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, 0x04}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coSvc}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coVer}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coUpd}: func(m msg) { notImpl(m) },
 	// 55    AA    00    71    01
 	// 55    AA    00    71    01    10
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, mainF, mFact}: func(m msg) {

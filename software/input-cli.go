@@ -314,7 +314,7 @@ func input() {
 		case "rec":
 			issueCmd(playr, plSby, 0x0, 0x1)
 		case "recusb":
-			issueCmd(rpFce, rpUsb, 0x0, 0x0)
+			issueCmd(pFace, pFUsb, 0x0, 0x0)
 			issueCmd(playr, plSby, 0x0, 0x1)
 			issueCmd(auRec, 0x20, 0x0, 0x0)
 		case "rec2":

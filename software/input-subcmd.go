@@ -196,14 +196,14 @@ func play() {
 	case idle:
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			// TODO: check
-			issueCmd(rpFce, rpUsb, 0x0, 0x0)
+			issueCmd(pFace, pFUsb, 0x0, 0x0)
 			issueCmd(auRec, auSel, 0x0, byte(mbStateItem("currentUsbSong")))
 			issueCmd(auRec, au_20, 0x0, 0x0)
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
-			issueCmd(rpFce, rpInt, 0x0, 0x0)
+			issueCmd(pFace, pFInt, 0x0, 0x0)
 			issueCmd(pmRec, pmSel, 0x0, byte(mbStateItem("currentPianistSong")))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
-			issueCmd(rpFce, rpInt, 0x0, 0x0)
+			issueCmd(pFace, pFInt, 0x0, 0x0)
 			issueCmd(smRec, smSel, 0x0, byte(mbStateItem("currentSoundSong")))
 			// issueCmd(smRec, smPlP, 0x0, 0x0)
 		}
@@ -214,7 +214,7 @@ func play() {
 		storeCurrentRecorderState <- idle
 		notify <- "END"
 		issueCmd(playr, plSto, 0x0, 0x0)
-		issueCmd(rpFce, rpClo, 0x0, 0x0)
+		issueCmd(pFace, pFClo, 0x0, 0x0)
 	case recording:
 		notify <- "RECORDNG"
 	default:
@@ -248,17 +248,17 @@ func record() {
 			storeCurrentRecorderState <- standby
 			storePlayerMsg <- "STBY"
 			seg14.w <- "STANDBY"
-			issueCmd(rpFce, rpUsb, 0x0, 0x0)
+			issueCmd(pFace, pFUsb, 0x0, 0x0)
 			issueCmd(playr, plSby, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			storeCurrentRecorderState <- standby
 			storePlayerMsg <- "STBY"
-			issueCmd(rpFce, rpInt, 0x0, 0x1)
+			issueCmd(pFace, pFInt, 0x0, 0x1)
 			issueCmd(playr, plSby, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			storeCurrentRecorderState <- standby
 			seg14.w <- "STANDBY"
-			issueCmd(rpFce, rpInt, 0x0, 0x1)
+			issueCmd(pFace, pFInt, 0x0, 0x1)
 			issueCmd(playr, plSby, 0x0, 0x1)
 		}
 	case standby:
@@ -281,18 +281,18 @@ func record() {
 				time.Sleep(500 * time.Millisecond)
 				fmt.Println("Waiting for confirmation of", usbSongName(mbStateItem("currentUsbSong")), "=", confirmed, "truth=", usbSongName(mbStateItem("currentUsbSong")) == confirmed)
 			}
-			issueCmd(rpFce, rpClo, 0x0, 0x1)
+			issueCmd(pFace, pFClo, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			storeCurrentRecorderState <- idle
 			seg14.w <- "STOP"
 			storePlayerMsg <- "STOP"
 			issueCmd(playr, plSto, 0x0, 0x0)
-			issueCmd(rpFce, rpClo, 0x0, 0x1)
+			issueCmd(pFace, pFClo, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			storeCurrentRecorderState <- idle
 			notify <- "STOPPED"
 			issueCmd(playr, plSto, 0x0, 0x0)
-			issueCmd(rpFce, rpClo, 0x0, 0x1)
+			issueCmd(pFace, pFClo, 0x0, 0x1)
 		}
 	case playing:
 		fmt.Print("PLAYING")
