@@ -237,6 +237,7 @@ func input() {
 				writeError("cancelled")
 			}
 		case keyMsa:
+			tapTempo()
 		case keyP:
 			play()
 		case keyPs:

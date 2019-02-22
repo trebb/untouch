@@ -5,12 +5,15 @@ import (
 	"log"
 )
 
-func getChar() []byte {
-	t, _ := term.Open("/dev/tty")
-	defer t.Restore()
-	defer t.Close()
+var t *term.Term
+
+func init(){
+	t, _ = term.Open("/dev/tty")
 	t.SetRaw()
 	t.Flush()
+}
+
+func getChar() []byte {
 	bytes := make([]byte, 3)
 	_, err := t.Read(bytes)
 	if err != nil {

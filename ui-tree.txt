@@ -24,6 +24,8 @@ keyboard keys:
 ** <current rhythm group>, <current rhythm>
 ** {new rhythm group} or {new rhythm} split keyboard
 *** <new rhythm>, <new rhythm group>
+* [mod1]+[mod2]+[metronome] (>= 3x, tap tempo)
+** <new tempo>
 
 * [registration] (X)
 ** <current registration>

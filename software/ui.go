@@ -547,6 +547,43 @@ func init() {
 	go confirmedUsbSongMonitor()
 }
 
+var (
+	tapTempoTap = make(chan struct{})
+	tapDuration = make(chan time.Duration)
+)
+
+func tapTempo() {
+	tapTempoTap <- struct{}{}
+}
+
+func tapTimeMonitor() {
+	var lastTime = time.Now()
+	for {
+		<-tapTempoTap
+		tapDuration <- time.Since(lastTime)
+		lastTime = time.Now()
+	}
+}
+
+func tapDurationMonitor() {
+	var lastDuration time.Duration
+	for {
+		d := <-tapDuration
+		if d-lastDuration > -200*time.Millisecond && d-lastDuration < 200*time.Millisecond {
+			tempo := 60 * time.Second / d
+			notify <- fmt.Sprint(tempo, "/min")
+			issueCmd(metro, mTmpo, 0x0, uint16(tempo))
+			issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
+		}
+		lastDuration = d
+	}
+}
+
+func init() {
+	go tapDurationMonitor()
+	go tapTimeMonitor()
+}
+
 var metronomeBeatTotal int
 
 var actions = map[msg]func(msg){
