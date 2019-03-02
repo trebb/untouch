@@ -2,7 +2,7 @@ export GOPATH = $(shell pwd)
 export GOARCH=arm
 export GOOS=linux
 
-SRC=ui.go names.go const.go getchar.go pnokeys.go input-btn.go input-subcmd.go display.go logscale.go
+SRC=ui.go names.go const.go getchar.go pnokeys.go input.go input-subcmd.go display.go logscale.go
 
 ui: $(SRC)
 	go get -d -x
