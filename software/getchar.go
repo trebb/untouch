@@ -7,7 +7,7 @@ import (
 
 var t *term.Term
 
-func init(){
+func init() {
 	t, _ = term.Open("/dev/tty")
 	t.SetRaw()
 	t.Flush()

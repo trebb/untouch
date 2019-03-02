@@ -22,6 +22,6 @@ func scaleVal(start, end, steps, step int) int {
 		n1 := n - intSteps
 		i1 := i - intSteps
 		p1 := math.Pow(e/s1, 1/n1)
-		return round(math.Pow(p1, i1) * s1) - 2
+		return round(math.Pow(p1, i1)*s1) - 2
 	}
 }

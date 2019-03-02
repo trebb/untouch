@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 )
 
 // func input(){
@@ -42,15 +43,14 @@ var (
 	keySs  = [...]byte{0x53, 0x00, 0x00}
 	keySa  = [...]byte{0x1B, 0x73, 0x00}
 	keySsa = [...]byte{0x1B, 0x53, 0x00}
-
-	key1 = [...]byte{0x31, 0x00, 0x00}
-	key2 = [...]byte{0x32, 0x00, 0x00}
-	key3 = [...]byte{0x33, 0x00, 0x00}
-	key4 = [...]byte{0x34, 0x00, 0x00}
-	key5 = [...]byte{0x35, 0x00, 0x00}
-	key6 = [...]byte{0x36, 0x00, 0x00}
-	key7 = [...]byte{0x37, 0x00, 0x00}
-	key8 = [...]byte{0x38, 0x00, 0x00}
+	// key1 = [...]byte{0x31, 0x00, 0x00}
+	// key2 = [...]byte{0x32, 0x00, 0x00}
+	// key3 = [...]byte{0x33, 0x00, 0x00}
+	// key4 = [...]byte{0x34, 0x00, 0x00}
+	// key5 = [...]byte{0x35, 0x00, 0x00}
+	// key6 = [...]byte{0x36, 0x00, 0x00}
+	// key7 = [...]byte{0x37, 0x00, 0x00}
+	// key8 = [...]byte{0x38, 0x00, 0x00}
 )
 
 func input() {
@@ -72,84 +72,84 @@ func input() {
 		case keyFsa:
 		case keyK: // aggregate mode: pianist mode, all sound mode splits
 			if mbStateItem("toneGeneratorMode") == tgSnd {
-				seg14.w <- name("keyboardMode", mbStateItem("keyboardMode"))
+				notifyLock(name("keyboardMode", mbStateItem("keyboardMode")))
 			} else {
-				seg14.w <- "PIANIST"
+				notifyLock("PIANIST")
 			}
 			k, ok := getPnoKey()
 			switch {
 			case !ok:
-				writeError("cancelled")
+				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			case k == 1: // pianist mode
-				notify <- "PIANIST"
+				notifyUnlock("PIANIST", 0, 1500*time.Millisecond)
 				keepMbState("toneGeneratorMode", tgPia)
 				issueCmd(tgMod, tgMod, 0x0, tgPia)
 			case k <= 5: // one of the sound mode keyboard modes
-				notify <- name("keyboardMode", int(k-2))
+				notifyUnlock(name("keyboardMode", int(k-2)), 0, 1500*time.Millisecond)
 				issueCmd(kbSpl, kbSpM, 0x0, byte(k-2)) // KB split mode 0..3
 				keepMbState("toneGeneratorMode", tgSnd)
 				issueCmd(tgMod, tgMod, 0x0, tgSnd)
 				requestAllVTSettings()
 			default:
-				writeError("cancelled")
+				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
 		case keyKs: // aggregate sound: rendering of pianist mode or first/only sound of sound mode
 			switch mbStateItem("toneGeneratorMode") {
 			case tgPia:
-				seg14.w <- name("renderingCharacter", mbStateItem("renderingCharacter"))
+				notifyLock(name("renderingCharacter", mbStateItem("renderingCharacter")))
 				k, ok := getPnoKey()
 				if ok && k <= 10 {
-					notify <- name("renderingCharacter", int(k-1))
+					notifyUnlock(name("renderingCharacter", int(k-1)), 0, 1500*time.Millisecond)
 					issueCmd(pmSet, pmRen, 0x0, byte(k-1))
 					issueCmd(tgMod, tgMod, 0x0, tgPia) // triggers confirmation of the changes
 				} else {
-					writeError("cancelled")
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
 			case tgSnd:
 				switch mbStateItem("keyboardMode") {
 				case kbSpMSingle:
-					seg14.w <- name("instrumentSound", mbStateItem("single"))
+					notifyLock(name("instrumentSound", mbStateItem("single")))
 					k, ok := getPnoKey()
 					if ok {
-						notify <- name("instrumentSound", int(k-1))
+						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
 						issueCmd(instr, iSing, 0x0, byte(k-1))
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
-						writeError("cancelled")
+						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 					}
 				case kbSpMDual:
-					seg14.w <- name("instrumentSound", mbStateItem("dual1"))
+					notifyLock(name("instrumentSound", mbStateItem("dual1")))
 					k, ok := getPnoKey()
 					if ok {
-						notify <- name("instrumentSound", int(k-1))
+						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
 						issueCmd(instr, iDua1, 0x0, byte(k-1))
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
-						writeError("cancelled")
+						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 					}
 				case kbSpMSplit:
-					seg14.w <- name("instrumentSound", mbStateItem("split1"))
+					notifyLock(name("instrumentSound", mbStateItem("split1")))
 					k, ok := getPnoKey()
 					if ok {
-						notify <- name("instrumentSound", int(k-1))
+						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
 						issueCmd(instr, iSpl1, 0x0, byte(k-1))
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
-						writeError("cancelled")
+						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 					}
 				case kbSpM4hands:
-					seg14.w <- name("instrumentSound", mbStateItem("4hands1"))
+					notifyLock(name("instrumentSound", mbStateItem("4hands1")))
 					k, ok := getPnoKey()
 					if ok {
-						notify <- name("instrumentSound", int(k-1))
+						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
 						issueCmd(instr, i4Hd1, 0x0, byte(k-1))
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
-						writeError("cancelled")
+						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 					}
 				default:
 					log.Print("bad keyboardMode")
@@ -160,43 +160,43 @@ func input() {
 		case keyKa: // aggregate sound: second sound of sound mode
 			switch mbStateItem("toneGeneratorMode") {
 			case tgPia:
-				notify <- "NO 2ND"
+				notifyUnlock("NO 2ND", 0, 1500*time.Millisecond)
 			case tgSnd:
 				switch mbStateItem("keyboardMode") {
 				case kbSpMSingle:
-					notify <- "NO 2ND"
+					notifyUnlock("NO 2ND", 0, 1500*time.Millisecond)
 				case kbSpMDual:
-					seg14.w <- name("instrumentSound", mbStateItem("dual2"))
+					notifyLock(name("instrumentSound", mbStateItem("dual2")))
 					k, ok := getPnoKey()
 					if ok {
-						notify <- name("instrumentSound", int(k-1))
+						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
 						issueCmd(instr, iDua2, 0x0, byte(k-1))
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
-						writeError("cancelled")
+						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 					}
 				case kbSpMSplit:
-					seg14.w <- name("instrumentSound", mbStateItem("split2"))
+					notifyLock(name("instrumentSound", mbStateItem("split2")))
 					k, ok := getPnoKey()
 					if ok {
-						notify <- name("instrumentSound", int(k-1))
+						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
 						issueCmd(instr, iSpl2, 0x0, byte(k-1))
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
-						writeError("cancelled")
+						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 					}
 				case kbSpM4hands:
-					seg14.w <- name("instrumentSound", mbStateItem("4hands2"))
+					notifyLock(name("instrumentSound", mbStateItem("4hands2")))
 					k, ok := getPnoKey()
 					if ok {
-						notify <- name("instrumentSound", int(k-1))
+						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
 						issueCmd(instr, i4Hd2, 0x0, byte(k-1))
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
-						writeError("cancelled")
+						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 					}
 				default:
 					log.Print("bad keyboardMode")
@@ -209,32 +209,32 @@ func input() {
 			issueCmd(metro, mVolu, 0x0, byte(mbStateItem("metronomeVolume")))
 			keepMbState("metronomeOnOff", int(issueTglCmd("metronomeOnOff", metro, mOnOf, 0x0)))
 		case keyMs:
-			seg14.w <- fmt.Sprint(mbStateItem("metronomeTempo"), "/min")
+			notifyLock(fmt.Sprint(mbStateItem("metronomeTempo"), "/min"))
 			k, ok := getPnoKey()
 			if ok {
 				tempo := scaleVal(10, 400, 88, int(k))
-				seg14.w <- fmt.Sprint(tempo, "/min")
+				notifyLock(fmt.Sprint(tempo, "/min"))
 				issueCmd(metro, mTmpo, 0x0, uint16(tempo))
 				issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
 			} else {
-				writeError("cancelled")
+				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
 		case keyMa:
-			seg14.w <- name("rhythmPattern", mbStateItem("rhythmPattern"))
+			notifyLock(name("rhythmPattern", mbStateItem("rhythmPattern")))
 			k, ok := getPnoKey()
 			if ok && int(k) < len(rhythmGroupIndex) {
-				seg14.w <- name("rhythmGroup", int(k-1))
+				notifyLock(name("rhythmGroup", int(k-1)))
 				k2, ok2 := getPnoKey()
 				if ok2 && k2 >= 42 { // middle-D = begin of rhythmGroup k
 					pat := int(k2) - 42 + rhythmGroupIndex[k-1]
-					notify <- name("rhythmPattern", int(pat))
+					notifyUnlock(name("rhythmPattern", int(pat)), 0, 1500*time.Millisecond)
 					issueCmd(metro, mSign, 0x0, int(pat))
 					issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
 				} else {
-					writeError("cancelled")
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
 			} else {
-				writeError("cancelled")
+				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
 		case keyMsa:
 			tapTempo()
@@ -261,7 +261,7 @@ func input() {
 		case keySa:
 		case keySsa:
 		default:
-			fmt.Printf("[%X %X %X] ", cmd[0], cmd[1], cmd[2])
+			log.Printf("[%X %X %X] ", cmd[0], cmd[1], cmd[2])
 		}
 	}
 }

@@ -16,7 +16,6 @@ var blkKey []uint8 = []uint8{
 	77, 79, 83, 85, 86,
 }
 
-
 // getPnoKey returns the number of the next key double-pressed on the piano.
 // Key A0 = 1; key C8 = 88.
 func getPnoKey() (k uint8, ok bool) {
@@ -52,7 +51,7 @@ Key1:
 		default:
 			seg14.brth <- struct{}{}
 			time.Sleep(16 * time.Millisecond)
-			if time.Since(t0) > 300 * time.Millisecond {
+			if time.Since(t0) > 300*time.Millisecond {
 				ok = false
 				break Key1
 			}

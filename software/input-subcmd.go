@@ -76,32 +76,32 @@ func selectPlaySong(partSet int) {
 			// TODO: check
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			collectPianistSongs()
-			seg14.w <- pianistSongName(false, mbStateItem("currentPianistSong"))
+			notifyLock(pianistSongName(false, mbStateItem("currentPianistSong")))
 			k, ok := getPnoKey()
 			if ok && k <= 3 {
 				keepMbState("currentPianistSong", int(k-1))
 			}
-			notify <- pianistSongName(false, mbStateItem("currentPianistSong"))
+			notifyUnlock(pianistSongName(false, mbStateItem("currentPianistSong")), 0, 1500*time.Millisecond)
 			issueCmd(pmRec, pmSel, 0x0, byte(mbStateItem("currentPianistSong")))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			collectSoundSongs()
-			seg14.w <- soundSongName(false, mbStateItem("currentSoundSong"), partSet)
+			notifyLock(soundSongName(false, mbStateItem("currentSoundSong"), partSet))
 			k, ok := getPnoKey()
 			fmt.Println("got Pno Key")
 			if ok && k <= 10 {
 				keepMbState("currentSoundSong", int(k-1))
 				keepMbState("currentSoundSongPartSet", partSet)
 			}
-			notify <- soundSongName(false, mbStateItem("currentSoundSong"), partSet)
+			notifyUnlock(soundSongName(false, mbStateItem("currentSoundSong"), partSet), 0, 1500*time.Millisecond)
 			issueCmd(smRec, smSel, 0x0, byte(mbStateItem("currentSoundSong")))
 			issueCmd(smRec, smPlP, 0x0, byte(partSet))
 		}
 	case standby:
-		notify <- "STANDBY"
+		notify("STANDBY", 0, 1500*time.Millisecond)
 	case recording:
-		notify <- "RECORDNG"
+		notify("RECORDNG", 0, 1500*time.Millisecond)
 	case playing:
-		notify <- "PLAYING"
+		notify("PLAYING", 0, 1500*time.Millisecond)
 	default:
 		log.Print("funny currentRecorderState")
 		storeCurrentRecorderState <- idle
@@ -116,31 +116,31 @@ func selectRecordSong(part int) {
 			// TODO: check
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			collectPianistSongs()
-			seg14.w <- pianistSongName(true, mbStateItem("currentPianistSong"))
+			notifyLock(pianistSongName(true, mbStateItem("currentPianistSong")))
 			k, ok := getPnoKey()
 			if ok && k <= 3 {
 				keepMbState("currentPianistSong", int(k-1))
 			}
-			notify <- pianistSongName(true, mbStateItem("currentPianistSong"))
+			notifyUnlock(pianistSongName(true, mbStateItem("currentPianistSong")), 0, 1500*time.Millisecond)
 			issueCmd(pmRec, pmSel, 0x0, byte(mbStateItem("currentPianistSong")))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			collectSoundSongs()
-			seg14.w <- soundSongName(true, mbStateItem("currentSoundSong"), part)
+			notifyLock(soundSongName(true, mbStateItem("currentSoundSong"), part))
 			k, ok := getPnoKey()
 			if ok && k <= 10 {
 				keepMbState("currentSoundSong", int(k-1))
 				keepMbState("currentSoundSongPartSet", part)
 			}
-			notify <- soundSongName(true, mbStateItem("currentSoundSong"), part)
+			notifyUnlock(soundSongName(true, mbStateItem("currentSoundSong"), part), 0, 1500*time.Millisecond)
 			issueCmd(smRec, smSel, 0x0, byte(mbStateItem("currentSoundSong")))
 			issueCmd(smRec, smRcP, 0x0, byte(part))
 		}
 	case standby:
-		notify <- "STANDBY"
+		notify("STANDBY", 0, 1500*time.Millisecond)
 	case recording:
-		notify <- "RECORDNG"
+		notify("RECORDNG", 0, 1500*time.Millisecond)
 	case playing:
-		notify <- "PLAYING"
+		notify("PLAYING", 0, 1500*time.Millisecond)
 	default:
 		log.Print("funny currentRecorderState")
 		storeCurrentRecorderState <- idle
@@ -212,11 +212,11 @@ func play() {
 		issueCmdAc(playr, plPla, 0x0, 0x0)
 	case playing:
 		storeCurrentRecorderState <- idle
-		notify <- "END"
+		notify("END", 0, 1500*time.Millisecond)
 		issueCmd(playr, plSto, 0x0, 0x0)
 		issueCmd(pFace, pFClo, 0x0, 0x0)
 	case recording:
-		notify <- "RECORDNG"
+		notify("RECORDNG", 0, 1500*time.Millisecond)
 	default:
 		log.Print("funny currentRecorderState")
 		storeCurrentRecorderState <- idle
@@ -230,7 +230,7 @@ func noticeRecording() {
 	} else if mbStateItem("toneGeneratorMode") == tgPia {
 		storePlayerMsg <- "REC" // pianist mode adds a seconds count
 	} else if mbStateItem("toneGeneratorMode") == tgSnd {
-		seg14.w <- "RECORDNG" // sound mode provides no information during recording
+		notify("RECORDNG", 0, 1500*time.Millisecond) // sound mode provides no information during recording
 	}
 }
 
@@ -247,7 +247,7 @@ func record() {
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			storeCurrentRecorderState <- standby
 			storePlayerMsg <- "STBY"
-			seg14.w <- "STANDBY"
+			notify("STANDBY", 0, 1500*time.Millisecond)
 			issueCmd(pFace, pFUsb, 0x0, 0x0)
 			issueCmd(playr, plSby, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
@@ -257,7 +257,7 @@ func record() {
 			issueCmd(playr, plSby, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			storeCurrentRecorderState <- standby
-			seg14.w <- "STANDBY"
+			notify("STANDBY", 0, 1500*time.Millisecond)
 			issueCmd(pFace, pFInt, 0x0, 0x1)
 			issueCmd(playr, plSby, 0x0, 0x1)
 		}
@@ -268,7 +268,7 @@ func record() {
 	case recording:
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			storeCurrentRecorderState <- idle
-			seg14.w <- "STOP"
+			notify("STOP", 0, 1500*time.Millisecond)
 			storePlayerMsg <- "STOP"
 			issueCmd(playr, plSto, 0x0, 0x0)
 			issueCmd(auRec, auTyp, 0x0, byte(mbStateItem("currentUsbSongType")))
@@ -284,19 +284,19 @@ func record() {
 			issueCmd(pFace, pFClo, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			storeCurrentRecorderState <- idle
-			seg14.w <- "STOP"
+			notify("STOP", 0, 1500*time.Millisecond)
 			storePlayerMsg <- "STOP"
 			issueCmd(playr, plSto, 0x0, 0x0)
 			issueCmd(pFace, pFClo, 0x0, 0x1)
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			storeCurrentRecorderState <- idle
-			notify <- "STOPPED"
+			notify("STOPPED", 0, 1500*time.Millisecond)
 			issueCmd(playr, plSto, 0x0, 0x0)
 			issueCmd(pFace, pFClo, 0x0, 0x1)
 		}
 	case playing:
 		fmt.Print("PLAYING")
-		notify <- "PLAYING"
+		notify("PLAYING", 0, 1500*time.Millisecond)
 	default:
 		log.Print("funny currentRecorderState")
 		storeCurrentRecorderState <- idle
@@ -304,10 +304,10 @@ func record() {
 }
 
 func eraseSongParts() {
-	seg14.w <- "ERA PRTS"
+	notifyLock("ERA PRTS")
 	k, ok := getPnoKey()
 	if ok && k == 1 {
-		notify <- "DONE"
+		notifyUnlock("DONE", 0, 1500*time.Millisecond)
 
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			// TODO: check
@@ -317,57 +317,58 @@ func eraseSongParts() {
 			issueCmdAc(smRec, smEra, byte(mbStateItem("currentSoundSong")), byte(mbStateItem("currentSoundSongPartSet")))
 		}
 	} else {
-		notify <- "CANCELLD"
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
 func loadRegistration() {
-	seg14.w <- fmt.Sprintf("REG %02d", mbStateItem("currentRegistration"))
+	notifyLock(fmt.Sprintf("REG %02d", mbStateItem("currentRegistration")))
 	k, ok := getPnoKey()
 	if ok && k <= 16 {
-		notify <- fmt.Sprintf("REG %02d", k-1)
+		notifyUnlock(fmt.Sprintf("REG %02d", k-1), 0, 1500*time.Millisecond)
 		issueCmd(regst, rgLoa, 0x0, k-1)
 		issueDtaRq(
 			request{regst, rgMod, k - 1, 0x1, 0x0},
 			// request{regst, rgNam, k - 1, 0x0},
 		)
+		issueCmd(regst, rgOpn, 0x0, 0x1) // trigger msg with the new currentRegistration
 	} else {
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
 func storeRegistration() {
-	seg14.w <- "TO REGST"
+	notifyLock("TO REGST")
 	k, ok := getPnoKey()
 	if ok && k <= 16 {
-		notify <- fmt.Sprintf("REG %02d", k-1)
+		notifyUnlock(fmt.Sprintf("REG %02d", k-1), 0, 1500*time.Millisecond)
 		// issueCmd(regst, rgNam, k-1, textarg2)
 		issueCmd(regst, rgSto, 0x0, k-1)
 	} else {
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
 func storeToSound() {
-	seg14.w <- "TO SOUND"
+	notifyLock("TO SOUND")
 	k, ok := getPnoKey()
 	if ok && k == 1 {
-		notify <- "DONE"
+		notifyUnlock("DONE", 0, 1500*time.Millisecond)
 		issueCmd(vTech, toSnd, 0x0, 0x21)
 	} else {
-		notify <- "CANCELLD"
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
 func immediateAction(id string, cmd byte, subCmd byte, expectedKey int) {
-	seg14.w <- immediateActionNames[id]
+	notifyLock(immediateActionNames[id])
 	k, ok := getPnoKey()
 	kMiD := int(k) - 42 // middle-D = 0
 	if ok && kMiD == expectedKey {
-		notify <- name(id, kMiD)
+		notifyUnlock(name(id, kMiD), 0, 1500*time.Millisecond)
 		issueCmd(cmd, subCmd, 0x0, 0x0)
 	} else {
-		notify <- "CANCELLD"
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
@@ -377,30 +378,32 @@ func immediateAction(id string, cmd byte, subCmd byte, expectedKey int) {
 // sendPgmNumber
 
 func immediateActions() {
-	seg14.w <- "COMMAND"
+	notifyLock("COMMAND")
 	k, ok := getPnoKey()
 	if ok {
 		switch k {
 		case blkKey[0]:
 			immediateAction("factoryReset", mainF, mFact, 12)
+			notifyUnlock("FACTORY", 0, 1500*time.Millisecond)
 		case blkKey[1]:
 			immediateAction("usbFormat", files, fFmat, 12)
+			notifyUnlock("USB FMT", 0, 1500*time.Millisecond)
 		case blkKey[2]:
-			seg14.w <- "ERASE"
+			notifyLock("ERASE")
 			k, ok := getPnoKey()
 			kMiD := int(k) - 42 // middle-D = 0
 			if ok && kMiD == 12 {
-				notify <- "ERASED"
+				notifyUnlock("ERASED", 0, 1500*time.Millisecond)
 				issueCmdAc(pmRec, pmEra, 0xFF)
 				issueCmdAc(smRec, smEra, 0xFF, 0x2)
 			} else {
-				notify <- "CANCELLD"
+				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
 		default:
-			writeError("cancelled")
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		}
 	} else {
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
@@ -451,33 +454,34 @@ func requestAllVTSettings() {
 	)
 }
 
-func writeError(errorsItem string) {
+func errorName(errorsItem string) string {
 	m, ok := errors[errorsItem]
 	if ok {
-		notify <- m
+		return m
 	} else {
-		notify <- "* * * *"
+		return "* * * *"
 	}
 }
 
 func inputSettingsValue(id string, cmd byte, subCmd byte, lowerBound int, upperBound int) {
-	seg14.w <- settingTopics[id]
+	notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
 	time.Sleep(1500 * time.Millisecond)
-	seg14.w <- name(id, mbStateItem(id))
+	notifyLock(name(id, mbStateItem(id)))
 	k, ok := getPnoKey()
 	kMiD := int(k) - 42 // middle-D = 0
 	if ok && kMiD >= lowerBound && kMiD <= upperBound {
-		notify <- name(id, kMiD)
+		notifyUnlock(name(id, kMiD), 0, 1500*time.Millisecond)
 		keepMbState(id, int(kMiD))
 		issueCmd(cmd, subCmd, 0x0, 0x0, kMiD)
 		issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 	} else {
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
 func inputKeySpecificSettingsValue(id string, cmd byte, subCmd byte, lowerBound int, upperBound int) {
-	seg14.w <- settingTopics[id]
+	// notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
+	notifyLock(settingTopics[id])
 	k, ok := getPnoKey()
 	if ok {
 		clearUserKeySetting <- struct{}{}
@@ -486,19 +490,22 @@ func inputKeySpecificSettingsValue(id string, cmd byte, subCmd byte, lowerBound 
 		for {
 			if seen := <-userKeySettingSeen; seen {
 				s = <-userKeySetting
+				break
 			} else {
 				time.Sleep(10 * time.Millisecond)
 			}
 		}
-		seg14.w <- fmt.Sprintf("%d %d", k-1, s) // TODO: translate k into note name
+		notifyLock(fmt.Sprintf("%d %d", k-1, int8(s))) // TODO: translate k into note name
 		k2, ok2 := getPnoKey()
 		kMiD := int(k2) - 42 // middle-D = 0
 		if ok2 && kMiD >= lowerBound && kMiD <= upperBound {
-			notify <- fmt.Sprintf("%d %d", k-1, kMiD) // TODO: translate k into note name
+			notifyUnlock(fmt.Sprintf("%d %d", k-1, int8(kMiD)), 0, 1500*time.Millisecond) // TODO: translate k into note name
 			issueCmd(cmd, subCmd, byte(k-1), byte(kMiD))
 		} else {
-			writeError("cancelled")
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		}
+	} else {
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
@@ -507,69 +514,69 @@ func scaledValue(i int, zero int, step float64, unit string) string {
 }
 
 func settings() {
-	seg14.w <- "SETTINGS"
+	notifyLock("SETTINGS")
 	k, ok := getPnoKey()
 	if !ok {
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		return
 	}
 	switch k {
 	case blkKey[0]:
 		if mbStateItem("toneGeneratorMode") == tgSnd {
-			writeError("notInSoundMode")
+			notifyUnlock(errorName("notInSoundMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("ambienceType", pmSet, pmAmb, 0, 9)
 		}
 	case blkKey[1]:
 		if mbStateItem("toneGeneratorMode") == tgSnd {
-			writeError("notInSoundMode")
+			notifyUnlock(errorName("notInSoundMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("ambienceDepth", pmSet, pmAmD, 0, 10)
 		}
 	case blkKey[2]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("reverbType", revrb, rType, 0, 5)
 		}
 	case blkKey[3]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("reverbDepth", revrb, rDpth, 1, 10)
 		}
 	case blkKey[4]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("effectsType", effct, eType, 0, 23)
 		}
 	case blkKey[5]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("effectsParam1", effct, ePar1, 1, 10)
 		}
 	case blkKey[6]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("effectsParam2", effct, ePar2, 1, 10)
 		}
 	case blkKey[7]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("transpose", mainF, mTran, -12, 12)
 		}
 
 	case blkKey[8]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			switch mbStateItem("keyboardMode") {
 			case kbSpMSingle:
-				writeError("onlyIn2SoundModes")
+				notifyUnlock(errorName("onlyIn2SoundModes"), 0, 1500*time.Millisecond)
 			case kbSpMDual:
 				inputSettingsValue("balance", dlSet, dlBal, 0, 16)
 			case kbSpMSplit:
@@ -580,11 +587,11 @@ func settings() {
 		}
 	case blkKey[9]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			switch mbStateItem("keyboardMode") {
 			case kbSpMSingle:
-				writeError("onlyIn2SoundModes")
+				notifyUnlock(errorName("onlyIn2SoundModes"), 0, 1500*time.Millisecond)
 			case kbSpMDual:
 				inputSettingsValue("layerOctaveShift", dlSet, dlOcS, -2, 2)
 			case kbSpMSplit:
@@ -595,11 +602,11 @@ func settings() {
 		}
 	case blkKey[10]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			switch mbStateItem("keyboardMode") {
 			case kbSpMSingle:
-				writeError("onlyIn2SoundModes")
+				notifyUnlock(errorName("onlyIn2SoundModes"), 0, 1500*time.Millisecond)
 			case kbSpMDual:
 				inputSettingsValue("dynamics", dlSet, dlDyn, 1, 10)
 			case kbSpMSplit:
@@ -610,58 +617,58 @@ func settings() {
 		}
 	case blkKey[11]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			switch mbStateItem("keyboardMode") {
 			case kbSpMSingle:
-				writeError("onlyIn2SoundModes")
+				notifyUnlock(errorName("onlyIn2SoundModes"), 0, 1500*time.Millisecond)
 			case kbSpMDual:
-				writeError("onlyInSplitModes")
+				notifyUnlock(errorName("onlyInSplitModes"), 0, 1500*time.Millisecond)
 			case kbSpMSplit:
-				seg14.w <- "SPLIT PT"
+				notifyLock("SPLIT PT")
 				k, ok := getPnoKey()
 				if ok {
 					issueCmd(spSet, spSpP, 0, byte(k+20))
-					notify <- fmt.Sprintf("KEY %d", k)
+					notifyUnlock(fmt.Sprintf("KEY %d", k), 0, 1500*time.Millisecond)
 				} else {
-					writeError("cancelled")
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
 			case kbSpM4hands:
-				seg14.w <- "SPLIT PT"
+				notifyLock("SPLIT PT")
 				k, ok := getPnoKey()
 				if ok {
 					issueCmd(h4Set, h4SpP, 0, byte(k+20))
-					notify <- (fmt.Sprintf("KEY %d", k))
+					notifyUnlock((fmt.Sprintf("KEY %d", k)), 0, 1500*time.Millisecond)
 				} else {
-					writeError("cancelled")
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
 			}
 		}
 
 	case blkKey[13]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			id := "tuning"
 			lowerBound := -26
 			upperBound := 26
-			seg14.w <- settingTopics[id]
+			notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
 			time.Sleep(1500 * time.Millisecond)
-			seg14.w <- scaledValue(mbStateItem(id), 440, 0.5, "Hz")
+			notifyLock(scaledValue(mbStateItem(id), 440, 0.5, "Hz"))
 			k, ok := getPnoKey()
 			kMiD := int(k) - 42 // middle-D = 0
 			if ok && kMiD >= lowerBound && kMiD <= upperBound {
-				notify <- scaledValue(kMiD, 440, 0.5, "Hz")
+				notifyUnlock(scaledValue(kMiD, 440, 0.5, "Hz"), 0, 1500*time.Millisecond)
 				keepMbState(id, int(kMiD))
 				issueCmd(mainF, mTung, 0x0, 0x0, kMiD)
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 			} else {
-				writeError("cancelled")
+				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
 		}
 	case blkKey[14]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("damperHold", mainF, mDpHl, 0, 1)
 		}
@@ -674,18 +681,18 @@ func settings() {
 		id := "lineInLevel"
 		lowerBound := -10
 		upperBound := 10
-		seg14.w <- settingTopics[id]
+		notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
 		time.Sleep(1500 * time.Millisecond)
-		seg14.w <- scaledValue(mbStateItem(id), 0, 1, "dB")
+		notifyLock(scaledValue(mbStateItem(id), 0, 1, "dB"))
 		k, ok := getPnoKey()
 		kMiD := int(k) - 42 // middle-D = 0
 		if ok && kMiD >= lowerBound && kMiD <= upperBound {
-			notify <- scaledValue(kMiD, 0, 1, "dB")
+			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
 			keepMbState(id, int(kMiD))
 			issueCmd(mainF, mLinV, 0x0, 0x0, kMiD)
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 		} else {
-			writeError("cancelled")
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		}
 	case blkKey[18]:
 		inputSettingsValue("wallEq", mainF, mWall, 0, 1)
@@ -704,18 +711,18 @@ func settings() {
 		id := "bluetoothAudioVolume"
 		lowerBound := -15
 		upperBound := 15
-		seg14.w <- settingTopics[id]
+		notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
 		time.Sleep(1500 * time.Millisecond)
-		seg14.w <- scaledValue(mbStateItem(id), 0, 1, "dB")
+		notifyLock(scaledValue(mbStateItem(id), 0, 1, "dB"))
 		k, ok := getPnoKey()
 		kMiD := int(k) - 42 // middle-D = 0
 		if ok && kMiD >= lowerBound && kMiD <= upperBound {
-			notify <- scaledValue(kMiD, 0, 1, "dB")
+			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
 			keepMbState(id, int(kMiD))
 			issueCmd(bluet, btAud, 0x0, 0x0, kMiD)
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 		} else {
-			writeError("cancelled")
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		}
 	case blkKey[25]:
 		inputSettingsValue("midiChannel", midiI, miCha, 0, 15)
@@ -744,33 +751,33 @@ func settings() {
 		id := "usbPlayerVolume"
 		cmd := playr
 		subCmd := plVol
-		notify <- settingTopics[id]
+		notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
 		time.Sleep(1500 * time.Millisecond)
-		seg14.w <- fmt.Sprint(mbStateItem(id))
+		notifyLock(fmt.Sprint(mbStateItem(id)))
 		k, ok := getPnoKey()
 		kMiD := int(k) - 42 // middle-D = 0
 		if ok && kMiD >= 0 && kMiD <= 88 {
 			x := scaleVal(0, 100, 45, kMiD)
-			notify <- fmt.Sprint(x)
+			notifyUnlock(fmt.Sprint(x), 0, 1500*time.Millisecond)
 			keepMbState(id, int(x))
 			issueCmd(byte(cmd), byte(subCmd), 0x0, 0x0, byte(x))
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			time.Sleep(time.Second)
 		} else {
-			writeError("cancelled")
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		}
 	case blkKey[35]:
 		inputSettingsValue("usbPlayerTranspose", auRec, auTrn, -12, 12)
 	default:
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
 func virtualTechnician() {
-	seg14.w <- "V TECHN"
+	notifyLock("V TECHN")
 	k, ok := getPnoKey()
 	if !ok {
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		return
 	}
 	switch k {
@@ -785,7 +792,7 @@ func virtualTechnician() {
 		inputKeySpecificSettingsValue("userVoicing", vTech, uVoic, -5, 5)
 	case blkKey[5]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("damperResonance", vTech, dmpRs, 0, 10)
 		}
@@ -793,25 +800,25 @@ func virtualTechnician() {
 		inputSettingsValue("damperNoise", vTech, dmpNs, 0, 10)
 	case blkKey[7]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("stringResonance", vTech, strRs, 0, 10)
 		}
 	case blkKey[8]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("undampedStringResonance", vTech, uStRs, 0, 10)
 		}
 	case blkKey[9]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("cabinetResonance", vTech, cabRs, 0, 9)
 		}
 	case blkKey[10]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("keyOffEffect", vTech, koEff, 0, 10)
 		}
@@ -821,13 +828,13 @@ func virtualTechnician() {
 		inputSettingsValue("hammerDelay", vTech, hmDly, 0, 10)
 	case blkKey[13]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("topboard", vTech, topBd, 0, 3)
 		}
 	case blkKey[14]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("decayTime", vTech, dcayT, 1, 10)
 		}
@@ -835,31 +842,31 @@ func virtualTechnician() {
 		inputSettingsValue("minimumTouch", vTech, miTch, 1, 20)
 	case blkKey[16]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("stretchTuning", vTech, streT, 0, 3)
 		}
 	case blkKey[17]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputKeySpecificSettingsValue("userStretchTuning", vTech, uStrT, -50, 50) // TODO: range too big
 		}
 	case blkKey[18]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("temperament", vTech, tmpmt, 1, 7)
 		}
 	case blkKey[19]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputKeySpecificSettingsValue("userTemperament", vTech, uTmpm, -50, 50) // TODO: range too big
 		}
 	case blkKey[20]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
-			writeError("notInPianistMode")
+			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
 			inputSettingsValue("temperamentKey", vTech, tmKey, 0, 11)
 		}
@@ -872,7 +879,7 @@ func virtualTechnician() {
 	case blkKey[24]:
 		inputSettingsValue("softPedalDepth", vTech, sfPdl, 1, 10)
 	default:
-		writeError("cancelled")
+		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
 }
 
@@ -883,7 +890,6 @@ func hi() {
 func setLocalDefaults() {
 	// issueCmd(regst, rgLoa, 0x0, 0)
 	issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
-	// issueCmd(metro, mVolu, 0x0, uint8(0))
 	issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
 	keepMbState("currentPianistSong", 0)
 	keepMbState("currentSoundSong", 0)

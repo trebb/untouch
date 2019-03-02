@@ -39,7 +39,7 @@ func main() {
 			time.Sleep(50 * time.Millisecond)
 		}
 	}
-	issueCmd(regst, rgLoa, 0x0, 0)
+	issueCmd(regst, rgLoa, 0x0, 0) // registration 0 used as startup configuration
 	for {
 		if _, ok := mbStateItemOk("toneGeneratorMode"); !ok {
 			for i := 0; i < 6; i++ {
@@ -48,7 +48,7 @@ func main() {
 			}
 			fmt.Print("x ")
 		} else {
-			notify <- "       *"
+			notify("       *", 0, 1500*time.Millisecond)
 			break
 		}
 	}
@@ -265,32 +265,69 @@ func name(tableKey string, i int) string {
 	return fmt.Sprint(i)
 }
 
-var notify = make(chan string)
+var notifyC = make(chan notification)
+var notifyLockC = make(chan string)
+var notifyUnlockC = make(chan notification)
 
-func notifyMonitor() {
-	active := false
-	var w int
+type notification struct {
+	s          string
+	precedence int
+	expiry     time.Time
+}
+
+func notify(s string, precedence int, ttl time.Duration) {
+	notifyC <- notification{s, precedence, time.Now().Add(ttl)}
+}
+
+func notifyLock(s string) {
+	notifyLockC <- s
+}
+
+func notifyUnlock(s string, precedence int, ttl time.Duration) {
+	notifyUnlockC <- notification{s, precedence, time.Now().Add(ttl)}
+}
+
+func notifyCMonitor() {
+	var nStack []notification
+	var nActive notification
+	locked := false
+
 	for {
 		select {
-		case s := <-notify:
-			active = true
-			w = 150
+		case s := <-notifyLockC:
+			locked = true
 			seg14.w <- s
+		case n := <-notifyUnlockC:
+			locked = false
+			nStack = append(nStack, n) // push
+		case n := <-notifyC:
+			if !locked {
+				nStack = append(nStack, n) // push
+			}
 		default:
-			time.Sleep(10 * time.Millisecond)
-			if active {
-				w -= 1
-				if w == 0 {
-					active = false
+			if !locked {
+				if len(nStack) >= 1 {
+					nTop := nStack[len(nStack)-1]
+					if nTop.expiry.Before(time.Now()) {
+						nStack = nStack[:len(nStack)-1] // pop & discard nTop
+					} else if nActive.precedence <= nTop.precedence {
+						nActive.precedence = nActive.precedence - 1
+						nStack[len(nStack)-1] = nActive // pop nTop, push nActive
+						nActive = nTop
+						seg14.w <- nActive.s
+					}
+				}
+				if nActive.expiry.Before(time.Now()) {
 					seg14.w <- ""
 				}
 			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 }
 
 func init() {
-	go notifyMonitor()
+	go notifyCMonitor()
 }
 
 type mbStateUpdateItem struct {
@@ -571,7 +608,7 @@ func tapDurationMonitor() {
 		d := <-tapDuration
 		if d-lastDuration > -200*time.Millisecond && d-lastDuration < 200*time.Millisecond {
 			tempo := 60 * time.Second / d
-			notify <- fmt.Sprint(tempo, "/min")
+			notify(fmt.Sprint(tempo, "/min"), 0, 1500*time.Millisecond)
 			issueCmd(metro, mTmpo, 0x0, uint16(tempo))
 			issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
 		}
@@ -627,9 +664,9 @@ var actions = map[msg]func(msg){
 			p = int(m[9]) + 1
 		}
 		if mbStateItem("rhythmPattern") == 0 { // 1/1
-			notify <- fmt.Sprintf("%*d", p+metronomeBeatTotal%2, m[9]+1)
+			notify(fmt.Sprintf("%*d", p+metronomeBeatTotal%2, m[9]+1), 0, 1500*time.Millisecond)
 		} else {
-			notify <- fmt.Sprintf("%*d", p, m[9]+1)
+			notify(fmt.Sprintf("%*d", p, m[9]+1), 0, 1500*time.Millisecond)
 		}
 	},
 	// 55    AA    00    6E    01    0F
@@ -653,8 +690,8 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int(int8(m[9]))) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    14
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fPgrs}: func(m msg) { notify <- fmt.Sprintf("FMT %3d", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fUsbE}: func(m msg) { notify <- errors["usbError"] },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fPgrs}: func(m msg) { notify(fmt.Sprintf("FMT %3d", m[9]), 0, 1500*time.Millisecond) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fUsbE}: func(m msg) { notify(errors["usbError"], 0, 1500*time.Millisecond) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvNm}: func(m msg) {
 		fmt.Printf("rename done: USB filename(%d)=%s\n", m[7], m[9:])
 	},
@@ -719,11 +756,11 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkDst}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    70
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwUsb}: func(m msg) {
-		notify <- name("usbThumbDrivePresence", int(m[9]))
+		notify(name("usbThumbDrivePresence", int(m[9])), 0, 1500*time.Millisecond)
 		keepMbState("usbThumbDrivePresence", m[9])
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwHPh}: func(m msg) {
-		notify <- name("phonesPresence", int(m[9]))
+		notify(name("phonesPresence", int(m[9])), 0, 1500*time.Millisecond)
 		keepMbState("phonesPresence", m[9])
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hw_03}: func(m msg) { notImpl(m) },
@@ -733,7 +770,7 @@ var actions = map[msg]func(msg){
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_01}: func(m msg) {
 		playerMsg := <-getPlayerMsg
-		seg14.w <- fmt.Sprintf("%-4s%4d", playerMsg, msgInt16(m[9:11]))
+		notify(fmt.Sprintf("%-4s%4d", playerMsg, msgInt16(m[9:11])), 0, 1500*time.Millisecond)
 		fmt.Println("bar/second count", msgInt16(m[9:11]))
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_02}: func(m msg) { // really duration?
@@ -743,7 +780,7 @@ var actions = map[msg]func(msg){
 		currentRecorderState := <-getCurrentRecorderState
 		if currentRecorderState == recording || currentRecorderState == playing {
 			playerMsg := <-getPlayerMsg
-			seg14.w <- fmt.Sprintf("%-4s%4d", playerMsg, msgInt16(m[9:11]))
+			notify(fmt.Sprintf("%-4s%4d", playerMsg, msgInt16(m[9:11])), 0, 1500*time.Millisecond)
 		}
 		fmt.Println("bar count", msgInt16(m[9:11]))
 	},
