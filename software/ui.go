@@ -752,8 +752,12 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roVer}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    65
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkMdl}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkDst}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkMdl}: func(m msg) {
+		keepMbState("pianoModel", m[9])
+	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkDst}: func(m msg) {
+		keepMbState("marketDestination", m[9])
+	},
 	// 55    AA    00    6E    01    70
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, hardw, hwUsb}: func(m msg) {
 		notify(name("usbThumbDrivePresence", int(m[9])), 0, 1500*time.Millisecond)

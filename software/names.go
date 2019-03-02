@@ -491,6 +491,28 @@ var names = map[string][]string{
 		"MULT ON1", // On1
 		"MULT ON2", // On2
 	},
+	"pianoModel": {
+		// source: firmware update file NV10_EU.SYS
+		0x1: "CA98",
+		0x2: "CA78",
+		0x3: "CA58",
+		0x4: "CA98G",
+		0x5: "CSXX",
+		0x6: "CSxx",
+		0x7: "NV50",
+		0x8: "NV10",
+		0x9: "ATXU",
+		0xA: "ATXUf",
+		0xB: "ATXG",
+		0xC: "ATXGf",
+	},
+	"marketDestination": {
+		// source: firmware update file NV10_EU.SYS
+		1: "EU",
+		2: "US",
+		3: "AU",
+		4: "JP",
+	},
 }
 
 func init() {
