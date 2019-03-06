@@ -1,0 +1,4 @@
+*.tar.gz
+br-external/board/raspberrypi/rootfs_overlay/root/
+br-output/
+buildroot*/

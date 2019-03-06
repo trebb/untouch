@@ -1,0 +1,14 @@
+- Build the sdcard image:
+
+  make
+
+
+- Write it to an sdcard
+
+  dd if=br-output/images/sdcard.img of=/dev/<sdcard> bs=1M
+
+
+- (optional) check configs
+  make O=../br-output menuconfig
+  make O=../br-output busybox-menuconfig
+  make O=../br-output linux-menuconfig
