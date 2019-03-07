@@ -20,5 +20,3 @@ expected to work on the CA78 and CA98 digital pianos as well.
 - No input menus, only short key sequences.
 
 - Switch off the display whenever possible.
-
-- Lower default metronome volume.
