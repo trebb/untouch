@@ -1,3 +1,5 @@
+Building an sdcard image (Raspberry Pi model B)
+
 - Build the sdcard image:
 
   make
@@ -12,7 +14,6 @@
 
   cd buildroot-2018.11.3
   make defconfig BR2_DEFCONFIG=../br-external/configs/novus-raspberrypi_defconfig O=../br-output 
-
   make O=../br-output menuconfig
   make O=../br-output savedefconfig
 
