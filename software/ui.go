@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"github.com/tarm/serial"
 	"log"
+	"os"
 	"time"
 )
+
+var buildDate string
 
 type msg [256]byte // Big Enough (TM)
 
 var (
 	mbPort      = flag.String("mb", "/dev/ttyUSB0", "the serial interface connected to the mainboard")
+	showVersion = flag.Bool("v", false, "print version and exit")
 	rawBytes    = make(chan byte, 1000)
 	notImplMsgs = make(chan string, 100)
 	toMb        = make(chan []byte, 100)
@@ -24,6 +28,10 @@ var seg14 display
 
 func main() {
 	flag.Parse()
+	if *showVersion {
+		fmt.Printf("%s\n", buildDate)
+		os.Exit(0)
+	}
 	s, err := serial.OpenPort(&serial.Config{Name: *mbPort, Baud: 115200})
 	if err != nil {
 		log.Print(err)
