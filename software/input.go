@@ -222,7 +222,7 @@ func input() {
 		case keyMa:
 			notifyLock(name("rhythmPattern", mbStateItem("rhythmPattern")))
 			k, ok := getPnoKey()
-			if ok && int(k) < len(rhythmGroupIndex) {
+			if ok && int(k)-1 < len(rhythmGroupIndex) {
 				notifyLock(name("rhythmGroup", int(k-1)))
 				k2, ok2 := getPnoKey()
 				if ok2 && k2 >= 42 { // middle-D = begin of rhythmGroup k
