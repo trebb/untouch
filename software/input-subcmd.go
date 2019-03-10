@@ -198,25 +198,25 @@ func play() {
 	case idle:
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			// TODO: check
-			issueCmd(pFace, pFUsb, 0x0, 0x0)
+			issueCmd(pFace, pFUsb, 0x0, byte(0x0))
 			issueCmd(auRec, auSel, 0x0, mbStateItem("currentUsbSong"))
-			issueCmd(auRec, au_20, 0x0, 0x0)
+			issueCmd(auRec, au_20, 0x0, byte(0x0))
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
-			issueCmd(pFace, pFInt, 0x0, 0x0)
+			issueCmd(pFace, pFInt, 0x0, byte(0x0))
 			issueCmd(pmRec, pmSel, 0x0, mbStateItem("currentPianistSong"))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
-			issueCmd(pFace, pFInt, 0x0, 0x0)
+			issueCmd(pFace, pFInt, 0x0, byte(0x0))
 			issueCmd(smRec, smSel, 0x0, mbStateItem("currentSoundSong"))
 			// issueCmd(smRec, smPlP, 0x0, 0x0)
 		}
 		storeCurrentRecorderState <- playing
 		storePlayerMsg <- "PLAY"
-		issueCmdAc(playr, plPla, 0x0, 0x0)
+		issueCmdAc(playr, plPla, 0x0, byte(0x0))
 	case playing:
 		storeCurrentRecorderState <- idle
 		notify("END", 0, 1500*time.Millisecond)
-		issueCmd(playr, plSto, 0x0, 0x0)
-		issueCmd(pFace, pFClo, 0x0, 0x0)
+		issueCmd(playr, plSto, 0x0, byte(0x0))
+		issueCmd(pFace, pFClo, 0x0, byte(0x0))
 	case recording:
 		notify("RECORDNG", 0, 1500*time.Millisecond)
 	default:
@@ -251,29 +251,29 @@ func record() {
 			storeCurrentRecorderState <- standby
 			storePlayerMsg <- "STBY"
 			notify("STANDBY", 0, 1500*time.Millisecond)
-			issueCmd(pFace, pFUsb, 0x0, 0x0)
-			issueCmd(playr, plSby, 0x0, 0x1)
+			issueCmd(pFace, pFUsb, 0x0, byte(0x0))
+			issueCmd(playr, plSby, 0x0, byte(0x1))
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			storeCurrentRecorderState <- standby
 			storePlayerMsg <- "STBY"
-			issueCmd(pFace, pFInt, 0x0, 0x1)
-			issueCmd(playr, plSby, 0x0, 0x1)
+			issueCmd(pFace, pFInt, 0x0, byte(0x1))
+			issueCmd(playr, plSby, 0x0, byte(0x1))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			storeCurrentRecorderState <- standby
 			notify("STANDBY", 0, 1500*time.Millisecond)
-			issueCmd(pFace, pFInt, 0x0, 0x1)
-			issueCmd(playr, plSby, 0x0, 0x1)
+			issueCmd(pFace, pFInt, 0x0, byte(0x1))
+			issueCmd(playr, plSby, 0x0, byte(0x1))
 		}
 	case standby:
 		noticeRecording()
-		issueCmd(playr, plRec, 0x0, 0x0)
+		issueCmd(playr, plRec, 0x0, byte(0x0))
 		storeConfirmedUsbSong <- ""
 	case recording:
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			storeCurrentRecorderState <- idle
 			notify("STOP", 0, 1500*time.Millisecond)
 			storePlayerMsg <- "STOP"
-			issueCmd(playr, plSto, 0x0, 0x0)
+			issueCmd(playr, plSto, 0x0, byte(0x0))
 			issueCmd(auRec, auTyp, 0x0, mbStateItem("currentUsbSongType"))
 			issueCmdAc(auRec, auNam, 0xFF, usbSongName(mbStateItem("currentUsbSong")))
 			for {
@@ -284,18 +284,18 @@ func record() {
 				time.Sleep(500 * time.Millisecond)
 				fmt.Println("Waiting for confirmation of", usbSongName(mbStateItem("currentUsbSong")), "=", confirmed, "truth=", usbSongName(mbStateItem("currentUsbSong")) == confirmed)
 			}
-			issueCmd(pFace, pFClo, 0x0, 0x1)
+			issueCmd(pFace, pFClo, 0x0, byte(0x1))
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			storeCurrentRecorderState <- idle
 			notify("STOP", 0, 1500*time.Millisecond)
 			storePlayerMsg <- "STOP"
-			issueCmd(playr, plSto, 0x0, 0x0)
-			issueCmd(pFace, pFClo, 0x0, 0x1)
+			issueCmd(playr, plSto, 0x0, byte(0x0))
+			issueCmd(pFace, pFClo, 0x0, byte(0x1))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			storeCurrentRecorderState <- idle
 			notify("STOPPED", 0, 1500*time.Millisecond)
-			issueCmd(playr, plSto, 0x0, 0x0)
-			issueCmd(pFace, pFClo, 0x0, 0x1)
+			issueCmd(playr, plSto, 0x0, byte(0x0))
+			issueCmd(pFace, pFClo, 0x0, byte(0x1))
 		}
 	case playing:
 		fmt.Print("PLAYING")
@@ -329,12 +329,12 @@ func loadRegistration() {
 	k, ok := getPnoKey()
 	if ok && k <= 16 {
 		notifyUnlock(fmt.Sprintf("REG %02d", k-1), 0, 1500*time.Millisecond)
-		issueCmd(regst, rgLoa, 0x0, k-1)
+		issueCmd(regst, rgLoa, 0x0, byte(k-1))
 		issueDtaRq(
 			request{regst, rgMod, k - 1, 0x1, 0x0},
 			// request{regst, rgNam, k - 1, 0x0},
 		)
-		issueCmd(regst, rgOpn, 0x0, 0x1) // trigger msg with the new currentRegistration
+		issueCmd(regst, rgOpn, 0x0, byte(0x1)) // trigger msg with the new currentRegistration
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
@@ -346,7 +346,7 @@ func storeRegistration() {
 	if ok && k <= 16 {
 		notifyUnlock(fmt.Sprintf("REG %02d", k-1), 0, 1500*time.Millisecond)
 		// issueCmd(regst, rgNam, k-1, textarg2)
-		issueCmd(regst, rgSto, 0x0, k-1)
+		issueCmd(regst, rgSto, 0x0, byte(k-1))
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
@@ -357,7 +357,7 @@ func storeToSound() {
 	k, ok := getPnoKey()
 	if ok && k == 1 {
 		notifyUnlock("DONE", 0, 1500*time.Millisecond)
-		issueCmd(vTech, toSnd, 0x0, 0x21)
+		issueCmd(vTech, toSnd, 0x0, byte(0x21))
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
@@ -369,7 +369,7 @@ func immediateAction(id string, cmd byte, subCmd byte, expectedKey int) {
 	kMiD := int(k) - 42 // middle-D = 0
 	if ok && kMiD == expectedKey {
 		notifyUnlock(name(id, kMiD), 0, 1500*time.Millisecond)
-		issueCmd(cmd, subCmd, 0x0, 0x0)
+		issueCmd(cmd, subCmd, 0x0, byte(0x0))
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 	}
@@ -398,7 +398,7 @@ func immediateActions() {
 			if ok && kMiD == 12 {
 				notifyUnlock("ERASED", 0, 1500*time.Millisecond)
 				issueCmdAc(pmRec, pmEra, 0xFF)
-				issueCmdAc(smRec, smEra, 0xFF, 0x2)
+				issueCmdAc(smRec, smEra, 0xFF, byte(0x2))
 			} else {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
@@ -475,7 +475,7 @@ func inputSettingsValue(id string, cmd byte, subCmd byte, lowerBound int, upperB
 	if ok && kMiD >= lowerBound && kMiD <= upperBound {
 		notifyUnlock(name(id, kMiD), 0, 1500*time.Millisecond)
 		keepMbState(id, int(kMiD))
-		issueCmd(cmd, subCmd, 0x0, 0x0, kMiD)
+		issueCmd(cmd, subCmd, 0x0, 0x0, byte(kMiD))
 		issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -664,7 +664,7 @@ func settings() {
 			if ok && kMiD >= lowerBound && kMiD <= upperBound {
 				notifyUnlock(scaledValue(kMiD, 440, 0.5, "Hz"), 0, 1500*time.Millisecond)
 				keepMbState(id, int(kMiD))
-				issueCmd(mainF, mTung, 0x0, 0x0, kMiD)
+				issueCmd(mainF, mTung, 0x0, byte(0x0), byte(kMiD))
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 			} else {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -693,7 +693,7 @@ func settings() {
 		if ok && kMiD >= lowerBound && kMiD <= upperBound {
 			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
 			keepMbState(id, int(kMiD))
-			issueCmd(mainF, mLinV, 0x0, 0x0, kMiD)
+			issueCmd(mainF, mLinV, 0x0, byte(0x0), byte(kMiD))
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 		} else {
 			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -723,7 +723,7 @@ func settings() {
 		if ok && kMiD >= lowerBound && kMiD <= upperBound {
 			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
 			keepMbState(id, int(kMiD))
-			issueCmd(bluet, btAud, 0x0, 0x0, kMiD)
+			issueCmd(bluet, btAud, 0x0, byte(0x0), byte(kMiD))
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 		} else {
 			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -764,7 +764,7 @@ func settings() {
 			x := scaleVal(0, 100, 45, kMiD)
 			notifyUnlock(fmt.Sprint(x), 0, 1500*time.Millisecond)
 			keepMbState(id, int(x))
-			issueCmd(byte(cmd), byte(subCmd), 0x0, 0x0, byte(x))
+			issueCmd(byte(cmd), byte(subCmd), byte(0x0), byte(0x0), byte(x))
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			time.Sleep(time.Second)
 		} else {
@@ -892,7 +892,7 @@ func hi() {
 }
 
 func setLocalDefaults() {
-	// issueCmd(regst, rgLoa, 0x0, 0)
+	issueCmd(regst, rgLoa, 0x0, byte(0)) // registration 0 serves as startup configuration
 	issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
 	issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 	keepMbState("currentPianistSong", 0)

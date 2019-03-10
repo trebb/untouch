@@ -39,7 +39,6 @@ func main() {
 			time.Sleep(50 * time.Millisecond)
 		}
 	}
-	issueCmd(regst, rgLoa, 0x0, byte(0)) // registration 0 used as startup configuration
 	for {
 		if _, ok := mbStateItemOk("toneGeneratorMode"); !ok {
 			for i := 0; i < 6; i++ {
@@ -51,9 +50,43 @@ func main() {
 			notify("       *", 0, 1500*time.Millisecond)
 			break
 		}
+		if _, ok := mbStateItemOk("serviceMode"); !ok {
+			for i := 0; i < 6; i++ {
+				seg14.spn <- spinPattern{runningPointer, []int{7}}
+				time.Sleep(50 * time.Millisecond)
+			}
+			fmt.Print("y ")
+		} else {
+			notify("      **", 0, 1500*time.Millisecond)
+			break
+		}
 	}
-	setLocalDefaults()
-	go input()
+	if mode, ok := mbStateItemOk("serviceMode"); ok {
+		fmt.Println("serviceMode", mode)
+		switch mode {
+		case coSvc:
+		case coVer:
+			for {
+				notify(fmt.Sprint(mbStateItem("romName")), 0, 1500*time.Millisecond)
+				time.Sleep(1500*time.Millisecond)
+				notify(fmt.Sprint(mbStateItem("romVersion")), 0, 1500*time.Millisecond)
+				time.Sleep(1500*time.Millisecond)
+				notify(name("pianoModel", mbStateItem("pianoModel")), 0, 1500*time.Millisecond)
+				time.Sleep(1500*time.Millisecond)
+				notify(name("marketDestination", mbStateItem("marketDestination")), 0, 1500*time.Millisecond)
+				time.Sleep(1500*time.Millisecond)
+				notify(fmt.Sprint(mbStateItem("romChecksum")), 0, 1500*time.Millisecond)
+				time.Sleep(1500*time.Millisecond)
+			}
+		case coMUd:
+		case coUUd:
+		default:
+			log.Print("unknown serviceMode", mode)
+		}
+	} else {		// normal playing mode
+		setLocalDefaults()
+		go input()
+	}
 	for {
 		x := <-notImplMsgs
 		log.Print("not implemented:", x)
@@ -153,10 +186,10 @@ func issueCmd(topic byte, subtopic byte, item byte, params ...interface{}) {
 			m2 = append(m2, []byte(x)...)
 			l += len(x)
 		default:
-		log.Printf("unknown cmd parameter (%T)%v in cmd %X %X %X %v\n", p, p, topic, subtopic, item, params)
-		// case int: // byte, actually
-		// 	m2 = append(m2, byte(x))
-		// 	l++
+			log.Printf("unknown cmd parameter (%T)%v in cmd %X %X %X %v\n", p, p, topic, subtopic, item, params)
+			// case int: // byte, actually
+			// 	m2 = append(m2, byte(x))
+			// 	l++
 		}
 	}
 	m1 = append(m1, byte(l))
@@ -196,7 +229,7 @@ func issueCmdAc(topic byte, subtopic byte, item byte, params ...interface{}) {
 		// 	m2 = append(m2, byte(x))
 		// 	l++
 		default:
-		log.Printf("unknown cmdAc parameter (%T)%v in cmd %X %X %X %v\n", p, p, topic, subtopic, item, params)
+			log.Printf("unknown cmdAc parameter (%T)%v in cmd %X %X %X %v\n", p, p, topic, subtopic, item, params)
 		}
 	}
 	m1 = append(m1, byte(l))
@@ -259,7 +292,7 @@ func notImpl(m interface{}, what ...string) {
 }
 
 func name(tableKey string, i interface{}) string {
-	switch i:=i.(type) {
+	switch i := i.(type) {
 	case int:
 		if i >= 0 && i < len(names[tableKey]) {
 			return names[tableKey][i]
@@ -404,8 +437,11 @@ func keepMbState(key string, payload interface{}) {
 	case int:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
 		fmt.Println("NOTICED:", key, "=", x)
+	case string:
+		mbStateUpdates <- mbStateUpdateItem{key, x}
+		fmt.Println("NOTICED:", key, "=", x)
 	default:
-		log.Print(payload, "has an unknown type")
+		log.Printf("can't keep (%T)%v as an mbStateItem for %s\n", payload, payload, key)
 	}
 }
 
@@ -697,7 +733,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown registration screen stuff")
 		}
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgLoa}: func(m msg) { keepMbState("currentRegistration", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgLoa}: func(m msg) { keepMbState("currentRegistration", m[9]) },
 	// 55    AA    00    6E    01    10
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int(int8(m[9]))) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
@@ -760,9 +796,10 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srWCk}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    61
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roNam}: func(m msg) { keepMbState("RomName", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roVer}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roNam}: func(m msg) { keepMbState("romName", string(m[9:9+m[8]])) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roVer}: func(m msg) { keepMbState("romVersion", string(m[9:9+m[8]])) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) {
+		keepMbState("romChecksum", fmt.Sprintf("%X%X", m[9], m[10])) },
 	// 55    AA    00    6E    01    65
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkMdl}: func(m msg) { keepMbState("pianoModel", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkDst}: func(m msg) { keepMbState("marketDestination", m[9]) },
@@ -833,6 +870,7 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    6E    01    7F
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coSvc}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coVer}: func(m msg) {
+		keepMbState("serviceMode", coVer)
 		fmt.Println("Version screen")
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coMUd}: func(m msg) { notImpl(m) },
