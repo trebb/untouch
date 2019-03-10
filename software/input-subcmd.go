@@ -82,7 +82,7 @@ func selectPlaySong(partSet int) {
 				keepMbState("currentPianistSong", int(k-1))
 			}
 			notifyUnlock(pianistSongName(false, mbStateItem("currentPianistSong")), 0, 1500*time.Millisecond)
-			issueCmd(pmRec, pmSel, 0x0, byte(mbStateItem("currentPianistSong")))
+			issueCmd(pmRec, pmSel, 0x0, mbStateItem("currentPianistSong"))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			collectSoundSongs()
 			notifyLock(soundSongName(false, mbStateItem("currentSoundSong"), partSet))
@@ -93,7 +93,7 @@ func selectPlaySong(partSet int) {
 				keepMbState("currentSoundSongPartSet", partSet)
 			}
 			notifyUnlock(soundSongName(false, mbStateItem("currentSoundSong"), partSet), 0, 1500*time.Millisecond)
-			issueCmd(smRec, smSel, 0x0, byte(mbStateItem("currentSoundSong")))
+			issueCmd(smRec, smSel, 0x0, mbStateItem("currentSoundSong"))
 			issueCmd(smRec, smPlP, 0x0, byte(partSet))
 		}
 	case standby:
@@ -122,7 +122,7 @@ func selectRecordSong(part int) {
 				keepMbState("currentPianistSong", int(k-1))
 			}
 			notifyUnlock(pianistSongName(true, mbStateItem("currentPianistSong")), 0, 1500*time.Millisecond)
-			issueCmd(pmRec, pmSel, 0x0, byte(mbStateItem("currentPianistSong")))
+			issueCmd(pmRec, pmSel, 0x0, mbStateItem("currentPianistSong"))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			collectSoundSongs()
 			notifyLock(soundSongName(true, mbStateItem("currentSoundSong"), part))
@@ -132,7 +132,7 @@ func selectRecordSong(part int) {
 				keepMbState("currentSoundSongPartSet", part)
 			}
 			notifyUnlock(soundSongName(true, mbStateItem("currentSoundSong"), part), 0, 1500*time.Millisecond)
-			issueCmd(smRec, smSel, 0x0, byte(mbStateItem("currentSoundSong")))
+			issueCmd(smRec, smSel, 0x0, mbStateItem("currentSoundSong"))
 			issueCmd(smRec, smRcP, 0x0, byte(part))
 		}
 	case standby:
@@ -179,12 +179,14 @@ func songPartSymbol(rec bool, data bool, selected bool) string {
 	}
 }
 
-func pianistSongName(recording bool, n int) string {
+func pianistSongName(recording bool, i interface{}) string {
+	n := i.(int)
 	emptiness := songPartSymbol(recording, pianistSongsItem(n).data, true)
 	return fmt.Sprintf("P_%d %s", n, emptiness)
 }
 
-func soundSongName(recording bool, n int, partSet int) string {
+func soundSongName(recording bool, i interface{}, partSet int) string {
+	n := i.(int)
 	part1 := songPartSymbol(recording, soundSongsItem(n).part1, partSet&0x1 == 0x0)
 	part2 := songPartSymbol(recording, soundSongsItem(n).part2, partSet > 0x0)
 	return fmt.Sprintf("S_%d %s.%s", n, part1, part2)
@@ -197,14 +199,14 @@ func play() {
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			// TODO: check
 			issueCmd(pFace, pFUsb, 0x0, 0x0)
-			issueCmd(auRec, auSel, 0x0, byte(mbStateItem("currentUsbSong")))
+			issueCmd(auRec, auSel, 0x0, mbStateItem("currentUsbSong"))
 			issueCmd(auRec, au_20, 0x0, 0x0)
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			issueCmd(pFace, pFInt, 0x0, 0x0)
-			issueCmd(pmRec, pmSel, 0x0, byte(mbStateItem("currentPianistSong")))
+			issueCmd(pmRec, pmSel, 0x0, mbStateItem("currentPianistSong"))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
 			issueCmd(pFace, pFInt, 0x0, 0x0)
-			issueCmd(smRec, smSel, 0x0, byte(mbStateItem("currentSoundSong")))
+			issueCmd(smRec, smSel, 0x0, mbStateItem("currentSoundSong"))
 			// issueCmd(smRec, smPlP, 0x0, 0x0)
 		}
 		storeCurrentRecorderState <- playing
@@ -234,7 +236,8 @@ func noticeRecording() {
 	}
 }
 
-func usbSongName(n int) string {
+func usbSongName(i interface{}) string {
+	n := i.(int)
 	return fmt.Sprintf("NOVUS_%02d", n)
 }
 
@@ -271,7 +274,7 @@ func record() {
 			notify("STOP", 0, 1500*time.Millisecond)
 			storePlayerMsg <- "STOP"
 			issueCmd(playr, plSto, 0x0, 0x0)
-			issueCmd(auRec, auTyp, 0x0, byte(mbStateItem("currentUsbSongType")))
+			issueCmd(auRec, auTyp, 0x0, mbStateItem("currentUsbSongType"))
 			issueCmdAc(auRec, auNam, 0xFF, usbSongName(mbStateItem("currentUsbSong")))
 			for {
 				confirmed := <-getConfirmedUsbSong
@@ -312,9 +315,9 @@ func eraseSongParts() {
 		if mbStateItem("usbThumbDrivePresence") == 1 {
 			// TODO: check
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
-			issueCmdAc(pmRec, pmEra, byte(mbStateItem("currentPianistSong")))
+			issueCmdAc(pmRec, pmEra, mbStateItem("currentPianistSong").(byte))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
-			issueCmdAc(smRec, smEra, byte(mbStateItem("currentSoundSong")), byte(mbStateItem("currentSoundSongPartSet")))
+			issueCmdAc(smRec, smEra, mbStateItem("currentSoundSong").(byte), byte(mbStateItem("currentSoundSongPartSet").(byte)))
 		}
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -509,8 +512,9 @@ func inputKeySpecificSettingsValue(id string, cmd byte, subCmd byte, lowerBound 
 	}
 }
 
-func scaledValue(i int, zero int, step float64, unit string) string {
-	return fmt.Sprintf("%d %s", float64(zero)+float64(i)*step, unit)
+func scaledValue(i interface{}, zero int, step float64, unit string) string {
+	v := i.(int)
+	return fmt.Sprintf("%d %s", float64(zero)+float64(v)*step, unit)
 }
 
 func settings() {
@@ -884,13 +888,13 @@ func virtualTechnician() {
 }
 
 func hi() {
-	issueCmdAc(commu, commu, 0x0, 0x0)
+	issueCmdAc(commu, commu, 0x0, byte(0x0))
 }
 
 func setLocalDefaults() {
 	// issueCmd(regst, rgLoa, 0x0, 0)
 	issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
-	issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
+	issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 	keepMbState("currentPianistSong", 0)
 	keepMbState("currentSoundSong", 0)
 	keepMbState("currentUsbSong", 0)
