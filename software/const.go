@@ -332,5 +332,6 @@ const ( // (commu, 0x7F) communication setup
 	// commu = 0x7F // init
 	coSvc = 0x00 // service screen
 	coVer = 0x01 // version screen
-	coUpd = 0x04 // update screen
+	coMUd = 0x03 // mainboard firmware update screen
+	coUUd = 0x04 // UI update screen
 )

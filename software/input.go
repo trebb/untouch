@@ -82,12 +82,12 @@ func input() {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			case k == 1: // pianist mode
 				notifyUnlock("PIANIST", 0, 1500*time.Millisecond)
-				keepMbState("toneGeneratorMode", tgPia)
+				keepMbState("toneGeneratorMode", byte(tgPia))
 				issueCmd(tgMod, tgMod, 0x0, tgPia)
 			case k <= 5: // one of the sound mode keyboard modes
 				notifyUnlock(name("keyboardMode", int(k-2)), 0, 1500*time.Millisecond)
 				issueCmd(kbSpl, kbSpM, 0x0, byte(k-2)) // KB split mode 0..3
-				keepMbState("toneGeneratorMode", tgSnd)
+				keepMbState("toneGeneratorMode", byte(tgSnd))
 				issueCmd(tgMod, tgMod, 0x0, tgSnd)
 				requestAllVTSettings()
 			default:
@@ -206,8 +206,8 @@ func input() {
 			}
 		case keyKsa:
 		case keyM:
-			issueCmd(metro, mVolu, 0x0, byte(mbStateItem("metronomeVolume")))
-			keepMbState("metronomeOnOff", int(issueTglCmd("metronomeOnOff", metro, mOnOf, 0x0)))
+			issueCmd(metro, mVolu, 0x0, mbStateItem("metronomeVolume"))
+			keepMbState("metronomeOnOff", issueTglCmd("metronomeOnOff", metro, mOnOf, 0x0))
 		case keyMs:
 			notifyLock(fmt.Sprint(mbStateItem("metronomeTempo"), "/min"))
 			k, ok := getPnoKey()
@@ -215,21 +215,21 @@ func input() {
 				tempo := scaleVal(10, 400, 88, int(k))
 				notifyLock(fmt.Sprint(tempo, "/min"))
 				issueCmd(metro, mTmpo, 0x0, uint16(tempo))
-				issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
+				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			} else {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
 		case keyMa:
 			notifyLock(name("rhythmPattern", mbStateItem("rhythmPattern")))
 			k, ok := getPnoKey()
-			if ok && int(k) < len(rhythmGroupIndex) {
+			if ok && int(k)-1 < len(rhythmGroupIndex) {
 				notifyLock(name("rhythmGroup", int(k-1)))
 				k2, ok2 := getPnoKey()
 				if ok2 && k2 >= 42 { // middle-D = begin of rhythmGroup k
-					pat := int(k2) - 42 + rhythmGroupIndex[k-1]
-					notifyUnlock(name("rhythmPattern", int(pat)), 0, 1500*time.Millisecond)
-					issueCmd(metro, mSign, 0x0, int(pat))
-					issueCmd(tgMod, tgMod, 0x0, byte(mbStateItem("toneGeneratorMode")))
+					pat := byte(int(k2) - 42 + rhythmGroupIndex[k-1])
+					notifyUnlock(name("rhythmPattern", pat), 0, 1500*time.Millisecond)
+					issueCmd(metro, mSign, 0x0, pat)
+					issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 				} else {
 					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
