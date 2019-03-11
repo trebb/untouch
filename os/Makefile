@@ -1,5 +1,6 @@
-BUILDROOT_TARBALL=buildroot-2018.11.3.tar.gz
-BUILDROOT_DIR=buildroot-2018.11.3
+BUILDROOT_VERSION=2018.11.3
+BUILDROOT_TARBALL=buildroot-$(BUILDROOT_VERSION).tar.gz
+BUILDROOT_DIR=buildroot-$(BUILDROOT_VERSION)
 BUILDROOT_EXTERNAL_CONFIG=br-output/.config
 UI_BINARY=br-external/board/raspberrypi/rootfs_overlay/root/ui
 SDCARD_IMG=br-output/images/sdcard.img
@@ -7,7 +8,7 @@ SDCARD_IMG=br-output/images/sdcard.img
 all: $(SDCARD_IMG)
 
 $(BUILDROOT_TARBALL):
-	wget https://buildroot.org/downloads/buildroot-2018.11.3.tar.gz
+	wget https://buildroot.org/downloads/buildroot-$(BUILDROOT_VERSION).tar.gz
 
 $(BUILDROOT_DIR): $(BUILDROOT_TARBALL)
 	tar -xzf $<

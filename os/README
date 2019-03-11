@@ -20,15 +20,15 @@ Building an sdcard image (Raspberry Pi model B)
 
 - (optional) check/modify busybox config
 
-  make defconfig BR2_DEFCONFIG=../br-external/configs/novus-raspberrypi_defconfig O=../br-output 
   cd buildroot-2018.11.3
+  make defconfig BR2_DEFCONFIG=../br-external/configs/novus-raspberrypi_defconfig O=../br-output 
   make O=../br-output busybox-menuconfig
   cp ../br-output/build/busybox-*.*.*/.config ../br-external/board/raspberrypi/busybox.config
 
 
 - (optional) check/modify linux config
 
-  make defconfig BR2_DEFCONFIG=../br-external/configs/novus-raspberrypi_defconfig O=../br-output 
   cd buildroot-2018.11.3
+  make defconfig BR2_DEFCONFIG=../br-external/configs/novus-raspberrypi_defconfig O=../br-output 
   make O=../br-output linux-menuconfig
   cp ../br-output/build/linux-custom/.config ../br-external/board/raspberrypi/linux.config
