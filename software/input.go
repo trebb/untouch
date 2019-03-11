@@ -213,7 +213,7 @@ func input() {
 			k, ok := getPnoKey()
 			if ok {
 				tempo := scaleVal(10, 400, 88, int(k))
-				notifyLock(fmt.Sprint(tempo, "/min"))
+				notifyUnlock(fmt.Sprint(tempo, "/min"))
 				issueCmd(metro, mTmpo, 0x0, uint16(tempo))
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			} else {
