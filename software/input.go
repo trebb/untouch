@@ -51,6 +51,7 @@ var (
 	// key6 = [...]byte{0x36, 0x00, 0x00}
 	// key7 = [...]byte{0x37, 0x00, 0x00}
 	// key8 = [...]byte{0x38, 0x00, 0x00}
+	keyESC = [...]byte{0x1B, 0x00, 0x00}
 )
 
 func input() {
@@ -213,7 +214,7 @@ func input() {
 			k, ok := getPnoKey()
 			if ok {
 				tempo := scaleVal(10, 400, 88, int(k))
-				notifyUnlock(fmt.Sprint(tempo, "/min"))
+				notifyUnlock(fmt.Sprint(tempo, "/min"), 0, 1500*time.Millisecond)
 				issueCmd(metro, mTmpo, 0x0, uint16(tempo))
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			} else {
@@ -260,6 +261,8 @@ func input() {
 			virtualTechnician()
 		case keySa:
 		case keySsa:
+		case keyESC:
+			log.Fatal("escape pressed") // for debugging
 		default:
 			log.Printf("[%X %X %X] ", cmd[0], cmd[1], cmd[2])
 		}

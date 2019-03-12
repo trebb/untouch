@@ -34,12 +34,13 @@ func main() {
 	}
 	s, err := serial.OpenPort(&serial.Config{Name: *mbPort, Baud: 115200})
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 	}
 	defer seg14.close()
 	go parse()
 	go rxd(*s)
 	go txd(*s)
+	go input()
 	for mbStateItem("mainboardSeen") != 1 {
 		hi()
 		for i := 0; i < 6; i++ {
@@ -93,7 +94,6 @@ func main() {
 		}
 	} else {		// normal playing mode
 		setLocalDefaults()
-		go input()
 	}
 	for {
 		x := <-notImplMsgs
@@ -433,7 +433,7 @@ func mbStateItem(key string) interface{} {
 		return s
 	} else {
 		log.Print("missing item ", key, " in mbState")
-		return 0
+		return byte(0)
 	}
 }
 
