@@ -319,13 +319,13 @@ const ( // (playr, 0x71) player
 )
 
 const ( // (pFace, 0x7E) piano/recorder/player face
-	pFClo = 0x00 // close player/recorder
+	pFPno = 0x00 // normal piano mode
 	pFInt = 0x02 // internal recorder/player
 	pFUsb = 0x03 // USB recorder/player
 	pFDem = 0x05 // demo songs
 	pFLes = 0x07 // lesson songs
 	pFCon = 0x08 // concert magic
-	pFPno = 0x09 // piano music
+	pFPMu = 0x09 // piano music
 )
 
 const ( // (commu, 0x7F) communication setup

@@ -48,51 +48,25 @@ func main() {
 			time.Sleep(50 * time.Millisecond)
 		}
 	}
+
 	for {
-		if _, ok := mbStateItemOk("toneGeneratorMode"); !ok {
-			for i := 0; i < 6; i++ {
-				seg14.spn <- spinPattern{runningPointer, []int{7}}
-				time.Sleep(50 * time.Millisecond)
-			}
-			fmt.Print("x ")
-		} else {
+		if _, ok := mbStateItemOk("normalPianoMode"); ok {
 			notify("       *", 0, 1500*time.Millisecond)
 			break
 		}
-		if _, ok := mbStateItemOk("serviceMode"); !ok {
-			for i := 0; i < 6; i++ {
-				seg14.spn <- spinPattern{runningPointer, []int{7}}
-				time.Sleep(50 * time.Millisecond)
-			}
-			fmt.Print("y ")
-		} else {
+		if _, ok := mbStateItemOk("serviceMode"); ok {
 			notify("      **", 0, 1500*time.Millisecond)
 			break
 		}
+		for i := 0; i < 6; i++ {
+			seg14.spn <- spinPattern{runningPointer, []int{7}}
+			time.Sleep(50 * time.Millisecond)
+		}
+		fmt.Print("x ")
 	}
 	if mode, ok := mbStateItemOk("serviceMode"); ok {
-		fmt.Println("serviceMode", mode)
-		switch mode {
-		case coSvc:
-		case coVer:
-			for {
-				notify(fmt.Sprint(mbStateItem("romName")), 0, 1500*time.Millisecond)
-				time.Sleep(1500*time.Millisecond)
-				notify(fmt.Sprint(mbStateItem("romVersion")), 0, 1500*time.Millisecond)
-				time.Sleep(1500*time.Millisecond)
-				notify(name("pianoModel", mbStateItem("pianoModel")), 0, 1500*time.Millisecond)
-				time.Sleep(1500*time.Millisecond)
-				notify(name("marketDestination", mbStateItem("marketDestination")), 0, 1500*time.Millisecond)
-				time.Sleep(1500*time.Millisecond)
-				notify(fmt.Sprint(mbStateItem("romChecksum")), 0, 1500*time.Millisecond)
-				time.Sleep(1500*time.Millisecond)
-			}
-		case coMUd:
-		case coUUd:
-		default:
-			log.Print("unknown serviceMode", mode)
-		}
-	} else {		// normal playing mode
+		service(mode.(int))
+	} else { // normal playing mode
 		setLocalDefaults()
 	}
 	for {
@@ -807,7 +781,8 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roNam}: func(m msg) { keepMbState("romName", string(m[9:9+m[8]])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roVer}: func(m msg) { keepMbState("romVersion", string(m[9:9+m[8]])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) {
-		keepMbState("romChecksum", fmt.Sprintf("%X%X", m[9], m[10])) },
+		keepMbState("romChecksum", fmt.Sprintf("%X%X", m[9], m[10]))
+	},
 	// 55    AA    00    6E    01    65
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkMdl}: func(m msg) { keepMbState("pianoModel", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkDst}: func(m msg) { keepMbState("marketDestination", m[9]) },
@@ -857,8 +832,9 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    6E    01    7E
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, pFace, 0x00}: func(m msg) {
 		switch m[7] {
-		case pFClo:
-			fmt.Println("close recorder/player")
+		case pFPno:
+			keepMbState("normalPianoMode", 1)
+			fmt.Println("normal piano mode")
 		case pFInt:
 			fmt.Println("open internal recorder/player")
 		case pFUsb:
@@ -869,7 +845,7 @@ var actions = map[msg]func(msg){
 			fmt.Println("open lesson song player")
 		case pFCon:
 			fmt.Println("open concert magic player")
-		case pFPno:
+		case pFPMu:
 			fmt.Println("open piano music player")
 		default:
 			notImpl(m, "unknown recorder/player face request")

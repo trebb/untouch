@@ -2,7 +2,7 @@ export GOPATH = $(shell pwd)
 export GOARCH=arm
 export GOOS=linux
 
-SRC=ui.go names.go const.go getchar.go pnokeys.go input.go input-subcmd.go display.go logscale.go
+SRC=ui.go names.go const.go getchar.go pnokeys.go input.go input-subcmd.go display.go logscale.go service.go
 BUILD_DATE=$(shell (date +"%y%m%d.$$(git rev-list -1 HEAD)" | cut -b 1-9))
 
 ui: $(SRC)
