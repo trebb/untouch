@@ -21,7 +21,7 @@ var (
 	rawBytes    = make(chan byte, 1000)
 	notImplMsgs = make(chan string, 100)
 	toMb        = make(chan []byte, 100)
-	pnoKeys     = make(chan uint8, 100)
+	pnoKeys     = make(chan int8, 100)
 )
 
 var seg14 display
@@ -48,7 +48,6 @@ func main() {
 			time.Sleep(50 * time.Millisecond)
 		}
 	}
-
 	for {
 		if _, ok := mbStateItemOk("normalPianoMode"); ok {
 			notify("       *", 0, 1500*time.Millisecond)
@@ -65,7 +64,7 @@ func main() {
 		fmt.Print("x ")
 	}
 	if mode, ok := mbStateItemOk("serviceMode"); ok {
-		service(mode.(int))
+		service(mode.(byte))
 	} else { // normal playing mode
 		setLocalDefaults()
 	}
@@ -416,7 +415,7 @@ func keepMbState(key string, payload interface{}) {
 	case byte:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
 		fmt.Println("NOTICED:", key, name(key, x))
-	case int:
+	case int16:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
 		fmt.Println("NOTICED:", key, "=", x)
 	case string:
@@ -671,20 +670,20 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, instr, i4Hd2}: func(m msg) { keepMbState("4hands2", m[9]) },
 	// 55    AA    00    6E    01    04
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmRen}: func(m msg) { keepMbState("renderingCharacter", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmRes}: func(m msg) { keepMbState("resonanceDepth", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmRes}: func(m msg) { keepMbState("resonanceDepth", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmAmb}: func(m msg) { keepMbState("ambienceType", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmAmD}: func(m msg) { keepMbState("ambienceDepth", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmSet, pmAmD}: func(m msg) { keepMbState("ambienceDepth", m[9]) },
 	// 55    AA    00    6E    01    08
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rOnOf}: func(m msg) { keepMbState("reverbOnOff", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rDpth}: func(m msg) { keepMbState("reverbDepth", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rTime}: func(m msg) { keepMbState("reverbTime", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rDpth}: func(m msg) { keepMbState("reverbDepth", m[9]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, revrb, rTime}: func(m msg) { keepMbState("reverbTime", m[9]) },
 	// 55    AA    00    6E    01    09
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, eOnOf}: func(m msg) { keepMbState("effectsOnOff", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, ePar1}: func(m msg) { keepMbState("effectsParam1", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, ePar2}: func(m msg) { keepMbState("effectsParam2", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, ePar1}: func(m msg) { keepMbState("effectsParam1", m[9]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, effct, ePar2}: func(m msg) { keepMbState("effectsParam2", m[9]) },
 	// 55    AA    00    6E    01    0A
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mOnOf}: func(m msg) { keepMbState("metronomeOnOff", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mTmpo}: func(m msg) { keepMbState("metronomeTempo", int(msgInt16(m[9:11]))) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mTmpo}: func(m msg) { keepMbState("metronomeTempo", msgInt16(m[9:11])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mSign}: func(m msg) { keepMbState("rhythmPattern", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) { keepMbState("metronomeVolume", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mBeat}: func(m msg) {
@@ -717,7 +716,7 @@ var actions = map[msg]func(msg){
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgLoa}: func(m msg) { keepMbState("currentRegistration", m[9]) },
 	// 55    AA    00    6E    01    10
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int(int8(m[9]))) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int8(m[9])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    14
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fPgrs}: func(m msg) { notify(fmt.Sprintf("FMT %3d", m[9]), 0, 1500*time.Millisecond) },
@@ -918,37 +917,37 @@ var actions = map[msg]func(msg){
 	},
 	// 55    AA    00    71    01    7F
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, commu, commu}: func(m msg) {
-		keepMbState("mainboardSeen", int(1))
+		keepMbState("mainboardSeen", 1)
 		requestInitialMbData()
 	},
 	// 55    AA    00    72    01
 	// 55    AA    00    72    01    04
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmb}: func(m msg) { keepMbState("ambienceType", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmD}: func(m msg) { keepMbState("ambienceDepth", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmD}: func(m msg) { keepMbState("ambienceDepth", m[9]) },
 	// 55    AA    00    72    01    05
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlBal}: func(m msg) { keepMbState("dualBalance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlOcS}: func(m msg) { keepMbState("dualLayerOctaveShift", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlDyn}: func(m msg) { keepMbState("dualDynamics", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlBal}: func(m msg) { keepMbState("dualBalance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlOcS}: func(m msg) { keepMbState("dualLayerOctaveShift", int8(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, dlSet, dlDyn}: func(m msg) { keepMbState("dualDynamics", m[9]) },
 	// 55    AA    00    72    01    06
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spBal}: func(m msg) { keepMbState("splitBalance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spOcS}: func(m msg) { keepMbState("splitLowerOctaveShift", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spPed}: func(m msg) { keepMbState("splitLowerPedal", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spSpP}: func(m msg) { keepMbState("splitSplitPoint", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spBal}: func(m msg) { keepMbState("splitBalance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spOcS}: func(m msg) { keepMbState("splitLowerOctaveShift", int8(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spPed}: func(m msg) { keepMbState("splitLowerPedal", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, spSet, spSpP}: func(m msg) { keepMbState("splitSplitPoint", m[9]) },
 	// 55    AA    00    72    01    07
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4Bal}: func(m msg) { keepMbState("4handsBalance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4LOS}: func(m msg) { keepMbState("4handsLeftOctaveShift", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4ROS}: func(m msg) { keepMbState("4handsRightOctaveShift", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4SpP}: func(m msg) { keepMbState("4handsSplitPoint", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4Bal}: func(m msg) { keepMbState("4handsBalance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4LOS}: func(m msg) { keepMbState("4handsLeftOctaveShift", int8(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4ROS}: func(m msg) { keepMbState("4handsRightOctaveShift", int8(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, h4Set, h4SpP}: func(m msg) { keepMbState("4handsSplitPoint", m[9]) },
 	// 55    AA    00    72    01    08
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rOnOf}: func(m msg) { keepMbState("reverbOnOff", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rType}: func(m msg) { keepMbState("reverbType", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rDpth}: func(m msg) { keepMbState("reverbDepth", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rTime}: func(m msg) { keepMbState("reverbTime", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rDpth}: func(m msg) { keepMbState("reverbDepth", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, revrb, rTime}: func(m msg) { keepMbState("reverbTime", m[9]) },
 	// 55    AA    00    72    01    09
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, eOnOf}: func(m msg) { keepMbState("effectsOnOff", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, eType}: func(m msg) { keepMbState("effectsType", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, ePar1}: func(m msg) { keepMbState("effectsParam1", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, ePar2}: func(m msg) { keepMbState("effectsParam2", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, ePar1}: func(m msg) { keepMbState("effectsParam1", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, effct, ePar2}: func(m msg) { keepMbState("effectsParam2", m[9]) },
 	// 55    AA    00    72    01    0F
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, regst, rgNam}: func(m msg) {
 		if reg := m[7]; reg <= 0xF {
@@ -965,10 +964,10 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    72    01    10
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int(int8(m[9]))) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int8(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTone}: func(m msg) { keepMbState("toneControl", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mSpkV}: func(m msg) { keepMbState("speakerVolume", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mLinV}: func(m msg) { keepMbState("lineInLevel", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mLinV}: func(m msg) { keepMbState("lineInLevel", int8(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mWall}: func(m msg) { keepMbState("wallEq", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mTung}: func(m msg) { keepMbState("tuning", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, mainF, mDpHl}: func(m msg) { keepMbState("damperHold", m[9]) },
@@ -985,23 +984,23 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    72    01    11
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, tCurv}: func(m msg) { keepMbState("touchCurve", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, voicg}: func(m msg) { keepMbState("voicing", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dmpRs}: func(m msg) { keepMbState("damperResonance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dmpNs}: func(m msg) { keepMbState("damperNoise", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, strRs}: func(m msg) { keepMbState("stringResonance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uStRs}: func(m msg) { keepMbState("undampedStringResonance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, cabRs}: func(m msg) { keepMbState("cabinetResonance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, koEff}: func(m msg) { keepMbState("keyOffResonance", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, fBkNs}: func(m msg) { keepMbState("fallBackNoise", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, hmDly}: func(m msg) { keepMbState("hammerDelay", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dmpRs}: func(m msg) { keepMbState("damperResonance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dmpNs}: func(m msg) { keepMbState("damperNoise", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, strRs}: func(m msg) { keepMbState("stringResonance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uStRs}: func(m msg) { keepMbState("undampedStringResonance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, cabRs}: func(m msg) { keepMbState("cabinetResonance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, koEff}: func(m msg) { keepMbState("keyOffResonance", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, fBkNs}: func(m msg) { keepMbState("fallBackNoise", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, hmDly}: func(m msg) { keepMbState("hammerDelay", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, topBd}: func(m msg) { keepMbState("topboard", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dcayT}: func(m msg) { keepMbState("decayTime", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, miTch}: func(m msg) { keepMbState("minimumTouch", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, dcayT}: func(m msg) { keepMbState("decayTime", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, miTch}: func(m msg) { keepMbState("minimumTouch", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, streT}: func(m msg) { keepMbState("stretchTuning", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, tmpmt}: func(m msg) { keepMbState("temperament", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, tmKey}: func(m msg) { keepMbState("temperamentKey", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, keyVo}: func(m msg) { keepMbState("keyVolume", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, hfPdl}: func(m msg) { keepMbState("halfPedalAdjust", int(m[9])) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, sfPdl}: func(m msg) { keepMbState("softPedalDepth", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, keyVo}: func(m msg) { keepMbState("keyVolume", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, hfPdl}: func(m msg) { keepMbState("halfPedalAdjust", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, sfPdl}: func(m msg) { keepMbState("softPedalDepth", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, smart}: func(m msg) { keepMbState("smartModeVt", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, vTech, uVoic}: func(m msg) {
 		storeUserKeySetting <- int(m[9])
@@ -1053,7 +1052,7 @@ var actions = map[msg]func(msg){
 	},
 	// 55    AA    00    72    01    16
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAud}: func(m msg) { keepMbState("bluetoothAudio", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAuV}: func(m msg) { keepMbState("bluetoothAudioVolume", int(m[9])) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAuV}: func(m msg) { keepMbState("bluetoothAudioVolume", int8(m[9])) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btMid}: func(m msg) { keepMbState("bluetoothMidi", m[9]) },
 	// 55    AA    00    72    01    17
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, lcdCn, 0x00}: func(m msg) { notImpl(m) },
@@ -1087,7 +1086,7 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, msg32, 0x02}: func(m msg) { notImpl(m) },
 	// 55    AA    00    72    01    70
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, hardw, hwKey}: func(m msg) {
-		pnoKeys <- m[9]
+		pnoKeys <- int8(m[9])
 	},
 	// 55    AA    00    72    01    71
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, playr, 0x07}: func(m msg) { notImpl(m) },

@@ -83,12 +83,12 @@ func input() {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			case k == 1: // pianist mode
 				notifyUnlock("PIANIST", 0, 1500*time.Millisecond)
-				keepMbState("toneGeneratorMode", byte(tgPia))
+				keepMbState("toneGeneratorMode", tgPia)
 				issueCmd(tgMod, tgMod, 0x0, tgPia)
 			case k <= 5: // one of the sound mode keyboard modes
 				notifyUnlock(name("keyboardMode", int(k-2)), 0, 1500*time.Millisecond)
-				issueCmd(kbSpl, kbSpM, 0x0, byte(k-2)) // KB split mode 0..3
-				keepMbState("toneGeneratorMode", byte(tgSnd))
+				issueCmd(kbSpl, kbSpM, 0x0, k-2) // KB split mode 0..3
+				keepMbState("toneGeneratorMode", tgSnd)
 				issueCmd(tgMod, tgMod, 0x0, tgSnd)
 				requestAllVTSettings()
 			default:
@@ -101,7 +101,7 @@ func input() {
 				k, ok := getPnoKey()
 				if ok && k <= 10 {
 					notifyUnlock(name("renderingCharacter", int(k-1)), 0, 1500*time.Millisecond)
-					issueCmd(pmSet, pmRen, 0x0, byte(k-1))
+					issueCmd(pmSet, pmRen, 0x0, k-1)
 					issueCmd(tgMod, tgMod, 0x0, tgPia) // triggers confirmation of the changes
 				} else {
 					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -113,7 +113,7 @@ func input() {
 					k, ok := getPnoKey()
 					if ok {
 						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iSing, 0x0, byte(k-1))
+						issueCmd(instr, iSing, 0x0, k-1)
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
@@ -124,7 +124,7 @@ func input() {
 					k, ok := getPnoKey()
 					if ok {
 						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iDua1, 0x0, byte(k-1))
+						issueCmd(instr, iDua1, 0x0, k-1)
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
@@ -135,7 +135,7 @@ func input() {
 					k, ok := getPnoKey()
 					if ok {
 						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iSpl1, 0x0, byte(k-1))
+						issueCmd(instr, iSpl1, 0x0, k-1)
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
@@ -146,7 +146,7 @@ func input() {
 					k, ok := getPnoKey()
 					if ok {
 						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, i4Hd1, 0x0, byte(k-1))
+						issueCmd(instr, i4Hd1, 0x0, k-1)
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
@@ -171,7 +171,7 @@ func input() {
 					k, ok := getPnoKey()
 					if ok {
 						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iDua2, 0x0, byte(k-1))
+						issueCmd(instr, iDua2, 0x0, k-1)
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
@@ -182,7 +182,7 @@ func input() {
 					k, ok := getPnoKey()
 					if ok {
 						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iSpl2, 0x0, byte(k-1))
+						issueCmd(instr, iSpl2, 0x0, k-1)
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
@@ -193,7 +193,7 @@ func input() {
 					k, ok := getPnoKey()
 					if ok {
 						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, i4Hd2, 0x0, byte(k-1))
+						issueCmd(instr, i4Hd2, 0x0, k-1)
 						issueCmd(tgMod, tgMod, 0x0, tgSnd)
 						requestAllVTSettings()
 					} else {
@@ -213,7 +213,7 @@ func input() {
 			notifyLock(fmt.Sprint(mbStateItem("metronomeTempo"), "/min"))
 			k, ok := getPnoKey()
 			if ok {
-				tempo := scaleVal(10, 400, 88, int(k))
+				tempo := scaleVal(10, 400, 88, k)
 				notifyUnlock(fmt.Sprint(tempo, "/min"), 0, 1500*time.Millisecond)
 				issueCmd(metro, mTmpo, 0x0, uint16(tempo))
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))

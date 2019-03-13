@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var blkKey []uint8 = []uint8{
+var blkKey []int8 = []int8{
 	2,
 	5, 7, 10, 12, 14,
 	17, 19, 22, 24, 26,
@@ -18,7 +18,7 @@ var blkKey []uint8 = []uint8{
 
 // getPnoKey returns the number of the next key double-pressed on the piano.
 // Key A0 = 1; key C8 = 88.
-func getPnoKey() (k uint8, ok bool) {
+func getPnoKey() (k int8, ok bool) {
 Drain:
 	for {
 		select {
@@ -29,7 +29,7 @@ Drain:
 		}
 	}
 	issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
-	var key0, key1 uint8
+	var key0, key1 int8
 Key0:
 	for {
 		select {

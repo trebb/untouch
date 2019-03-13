@@ -8,7 +8,7 @@ func round(f float64) int {
 	return int(math.Floor(f + .5))
 }
 
-func scaleVal(start, end, steps, step int) int {
+func scaleVal(start, end int, steps, step int8) int {
 	s := float64(start) - 1 + 2
 	e := float64(end) + 2
 	n := float64(steps)

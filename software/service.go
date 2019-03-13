@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func service(mode int) {
+func service(mode byte) {
 	fmt.Println("serviceMode", mode)
 	switch mode {
 	case coSvc:
