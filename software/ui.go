@@ -41,7 +41,7 @@ func main() {
 	go rxd(*s)
 	go txd(*s)
 	go input()
-	for mbStateItem("mainboardSeen") != 1 {
+	for mbStateItem("mainboardSeen") != byte(1) {
 		hi()
 		for i := 0; i < 6; i++ {
 			seg14.spn <- spinPattern{runningOutline, []int{7}}
@@ -289,6 +289,11 @@ func name(tableKey string, i interface{}) string {
 			return names[tableKey][i]
 		}
 		return fmt.Sprint(i)
+	case int8:
+		if int(i) >= 0 && int(i) < len(names[tableKey]) {
+			return names[tableKey][i]
+		}
+		return fmt.Sprint(i)
 	case byte:
 		if int(i) >= 0 && int(i) < len(names[tableKey]) {
 			return names[tableKey][i]
@@ -423,6 +428,9 @@ func mbStateItem(key string) interface{} {
 func keepMbState(key string, payload interface{}) {
 	switch x := payload.(type) {
 	case byte:
+		mbStateUpdates <- mbStateUpdateItem{key, x}
+		fmt.Println("NOTICED:", key, name(key, x))
+	case int8:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
 		fmt.Println("NOTICED:", key, name(key, x))
 	case int16:
@@ -842,7 +850,7 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, pFace, 0x00}: func(m msg) {
 		switch m[7] {
 		case pFPno:
-			keepMbState("normalPianoMode", 1)
+			keepMbState("normalPianoMode", byte(1))
 			fmt.Println("normal piano mode")
 		case pFInt:
 			fmt.Println("open internal recorder/player")
@@ -927,7 +935,7 @@ var actions = map[msg]func(msg){
 	},
 	// 55    AA    00    71    01    7F
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, commu, commu}: func(m msg) {
-		keepMbState("mainboardSeen", 1)
+		keepMbState("mainboardSeen", byte(1))
 		requestInitialMbData()
 	},
 	// 55    AA    00    72    01
