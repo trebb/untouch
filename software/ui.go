@@ -53,8 +53,12 @@ func main() {
 			notify("       *", 0, 1500*time.Millisecond)
 			break
 		}
-		if _, ok := mbStateItemOk("serviceMode"); ok {
+		if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
 			notify("      **", 0, 1500*time.Millisecond)
+			break
+		}
+		if _, ok := mbStateItemOk("serviceMode"); ok {
+			notify("    ****", 0, 1500*time.Millisecond)
 			break
 		}
 		for i := 0; i < 6; i++ {
@@ -66,6 +70,12 @@ func main() {
 	if mode, ok := mbStateItemOk("serviceMode"); ok {
 		service(mode.(byte))
 	} else { // normal playing mode
+		for {
+			if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
+				notify("     ***", 0, 1500*time.Millisecond)
+				break
+			}
+		}
 		setLocalDefaults()
 	}
 	for {
