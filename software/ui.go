@@ -41,7 +41,8 @@ func main() {
 	go rxd(*s)
 	go txd(*s)
 	go input()
-	for mbStateItem("mainboardSeen") != byte(1) {
+	keepMbState("mainboardSeen", false)
+	for !mbStateItem("mainboardSeen").(bool) {
 		hi()
 		for i := 0; i < 6; i++ {
 			seg14.spn <- spinPattern{runningOutline, []int{7}}
@@ -170,6 +171,9 @@ func issueCmd(topic byte, subtopic byte, item byte, params ...interface{}) {
 		case byte:
 			m2 = append(m2, x)
 			l++
+		case int8:
+			m2 = append(m2, byte(x))
+			l++
 		case uint16:
 			m2 = append(m2, uint16Msg(x)...)
 			l += 2
@@ -178,9 +182,6 @@ func issueCmd(topic byte, subtopic byte, item byte, params ...interface{}) {
 			l += len(x)
 		default:
 			log.Printf("unknown cmd parameter (%T)%v in cmd %X %X %X %v\n", p, p, topic, subtopic, item, params)
-			// case int: // byte, actually
-			// 	m2 = append(m2, byte(x))
-			// 	l++
 		}
 	}
 	m1 = append(m1, byte(l))
@@ -210,15 +211,15 @@ func issueCmdAc(topic byte, subtopic byte, item byte, params ...interface{}) {
 		case byte:
 			m2 = append(m2, x)
 			l++
+		case int8:
+			m2 = append(m2, byte(x))
+			l++
 		case uint16:
 			m2 = append(m2, uint16Msg(x)...)
 			l += 2
 		case string:
 			m2 = append(m2, []byte(x)...)
 			l += len(x)
-		// case int: // byte, actually
-		// 	m2 = append(m2, byte(x))
-		// 	l++
 		default:
 			log.Printf("unknown cmdAc parameter (%T)%v in cmd %X %X %X %v\n", p, p, topic, subtopic, item, params)
 		}
@@ -437,6 +438,9 @@ func keepMbState(key string, payload interface{}) {
 		mbStateUpdates <- mbStateUpdateItem{key, x}
 		fmt.Println("NOTICED:", key, "=", x)
 	case string:
+		mbStateUpdates <- mbStateUpdateItem{key, x}
+		fmt.Println("NOTICED:", key, "=", x)
+	case bool:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
 		fmt.Println("NOTICED:", key, "=", x)
 	default:
@@ -762,10 +766,10 @@ var actions = map[msg]func(msg){
 		switch m[7] {
 		case 0:
 			keepMbState("soundSongPart1", m[9])
-			keepMbState("soundSongPart1Seen", 1)
+			keepMbState("soundSongPart1Seen", true)
 		case 1:
 			keepMbState("soundSongPart2", m[9])
-			keepMbState("soundSongPart2Seen", 1)
+			keepMbState("soundSongPart2Seen", true)
 		}
 	},
 	// 55    AA    00    6E    01    21
@@ -935,7 +939,7 @@ var actions = map[msg]func(msg){
 	},
 	// 55    AA    00    71    01    7F
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, commu, commu}: func(m msg) {
-		keepMbState("mainboardSeen", byte(1))
+		keepMbState("mainboardSeen", true)
 		requestInitialMbData()
 	},
 	// 55    AA    00    72    01

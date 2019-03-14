@@ -49,10 +49,10 @@ func collectSoundSongs() {
 	for i := 0; i < 10; i++ {
 		s := soundSongsItem(i)
 		if s.data {
-			keepMbState("soundSongPart1Seen", 0)
-			keepMbState("soundSongPart2Seen", 0)
+			keepMbState("soundSongPart1Seen", false)
+			keepMbState("soundSongPart2Seen", false)
 			issueCmd(smRec, smSel, 0x0, int8(i))
-			for mbStateItem("soundSongPart1Seen") == 0 || mbStateItem("soundSongPart2Seen") == 0 {
+			for !(mbStateItem("soundSongPart1Seen").(bool) && mbStateItem("soundSongPart2Seen").(bool)) {
 				time.Sleep(10 * time.Millisecond)
 			}
 			keepSoundSongsPart1(i, mbStateItem("soundSongPart1") == 1)
@@ -317,7 +317,7 @@ func eraseSongParts() {
 		} else if mbStateItem("toneGeneratorMode") == tgPia {
 			issueCmdAc(pmRec, pmEra, mbStateItem("currentPianistSong").(byte))
 		} else if mbStateItem("toneGeneratorMode") == tgSnd {
-			issueCmdAc(smRec, smEra, mbStateItem("currentSoundSong").(byte), byte(mbStateItem("currentSoundSongPartSet").(byte)))
+			issueCmdAc(smRec, smEra, mbStateItem("currentSoundSong").(byte), mbStateItem("currentSoundSongPartSet"))
 		}
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -632,7 +632,7 @@ func settings() {
 				notifyLock("SPLIT PT")
 				k, ok := getPnoKey()
 				if ok {
-					issueCmd(spSet, spSpP, 0, byte(k+20))
+					issueCmd(spSet, spSpP, 0, k+20)
 					notifyUnlock(fmt.Sprintf("KEY %d", k), 0, 1500*time.Millisecond)
 				} else {
 					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -641,7 +641,7 @@ func settings() {
 				notifyLock("SPLIT PT")
 				k, ok := getPnoKey()
 				if ok {
-					issueCmd(h4Set, h4SpP, 0, byte(k+20))
+					issueCmd(h4Set, h4SpP, 0, k+20)
 					notifyUnlock((fmt.Sprintf("KEY %d", k)), 0, 1500*time.Millisecond)
 				} else {
 					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -761,10 +761,10 @@ func settings() {
 		k, ok := getPnoKey()
 		kMiD := k - 42 // middle-D = 0
 		if ok && kMiD >= 0 && kMiD <= 88 {
-			x := scaleVal(0, 100, 45, kMiD)
+			x := int8(scaleVal(0, 100, 45, kMiD))
 			notifyUnlock(fmt.Sprint(x), 0, 1500*time.Millisecond)
-			keepMbState(id, int(x))
-			issueCmd(cmd, subCmd, 0x0, byte(0x0), byte(x))
+			keepMbState(id, x)
+			issueCmd(cmd, subCmd, 0x0, byte(0x0), x)
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			time.Sleep(time.Second)
 		} else {
@@ -895,9 +895,9 @@ func setLocalDefaults() {
 	issueCmd(regst, rgLoa, 0x0, byte(0)) // registration 0 serves as startup configuration
 	issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
 	issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
-	keepMbState("currentPianistSong", 0)
-	keepMbState("currentSoundSong", 0)
-	keepMbState("currentUsbSong", 0)
-	keepMbState("currentUsbSongType", 0)
+	keepMbState("currentPianistSong", byte(0))
+	keepMbState("currentSoundSong", byte(0))
+	keepMbState("currentUsbSong", byte(0))
+	keepMbState("currentUsbSongType", byte(0))
 	// storeCurrentRecorderState <- idle
 }
