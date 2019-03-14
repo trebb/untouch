@@ -797,6 +797,8 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTCk}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKRw}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srWCk}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srAlK}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKAd}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    61
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roNam}: func(m msg) { keepMbState("romName", string(m[9:9+m[8]])) },
