@@ -806,6 +806,19 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) {
 		keepMbState("romChecksum", fmt.Sprintf("%X%X", m[9], m[10]))
 	},
+	// 55    AA    00    6E    01    63
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muUOk}: func(m msg) {
+		notify(serviceNames["updateOk"], 0, 5*time.Hour)
+	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muNam}: func(m msg) { notify(string(m[9:9+m[8]]), 1, 3*time.Second) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muCnt}: func(m msg) {
+		notify(fmt.Sprintf("%X", m[9:12]), -1, 5*time.Second)
+	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muDne}: func(m msg) {
+		notify(serviceNames["updateDone"], 0, 5*time.Second)
+	},
+	// 55    AA    00    6E    01    64
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, uiUpd, upErr}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    65
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkMdl}: func(m msg) { keepMbState("pianoModel", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mrket, mkDst}: func(m msg) { keepMbState("marketDestination", m[9]) },

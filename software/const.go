@@ -40,7 +40,8 @@ const ( // principal topics of mainboard operation
 	biSng byte = 0x3F // built-in songs
 	servi byte = 0x60 // service screen
 	romId byte = 0x61 // ROM identification
-	updat byte = 0x64 // update
+	mbUpd byte = 0x63 // MB update
+	uiUpd byte = 0x64 // UI update
 	mrket byte = 0x65 // model, market destination
 	hardw byte = 0x70 // user action on hardware: connecting devices, pressing keys
 	playr byte = 0x71 // player
@@ -283,10 +284,17 @@ const ( // (romId, 0x61) ROM identification
 	roCkS byte = 0x02 // checksum
 )
 
-const ( // (updat, 0x64) update
+const ( // (mbUpd, 0x63) MB update
+	muUOk byte = 0x01 // update ok
+	muNam byte = 0x40 // filename
+	muCnt byte = 0x41 // byte count
+	muDne byte = 0x42 // update done
+)
+
+const ( // (uiUpd, 0x64) UI update
 	upErr byte = 0x00 // error: no USB
-	upNow byte = 0x02 // update now
-	upLtr byte = 0x03 // update later
+	upNow byte = 0x02 // update later
+	upLtr byte = 0x03 // update now
 )
 
 const ( // (mrket = 0x65) model, market destination
@@ -330,8 +338,8 @@ const ( // (pFace, 0x7E) piano/recorder/player face
 
 const ( // (commu, 0x7F) communication setup
 	// commu = 0x7F // init
-	coSvc byte = 0x00 // service screen
-	coVer byte = 0x01 // version screen
-	coMUd byte = 0x03 // mainboard firmware update screen
-	coUUd byte = 0x04 // UI update screen
+	coSvc byte = 0x00 // service screen (power on + pedals 1, 2)
+	coVer byte = 0x01 // version screen (power on + pedals 2, 3)
+	coMUd byte = 0x03 // mainboard firmware update screen (power on 10 sec)
+	coUUd byte = 0x04 // UI update screen (power on + pedals 1, 2, 3)
 )

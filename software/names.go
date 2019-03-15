@@ -608,6 +608,14 @@ var immediateActionNames = map[string]string{
 	"usbFormat":    "FRMT USB",
 }
 
+var serviceNames = map[string]string{
+	"serviceMode":            "SERVICE",
+	"mbFirmwareUpdate":       "FW UPDTE",
+	"updateDone":             "UPD DONE",
+	"updateOk":               "UPD OK",
+	"uiUpdateNotImplemented": "NOT IMPL",
+}
+
 var errors = map[string]string{
 	"cancelled":         "CANCELLD",
 	"notInPianistMode":  "UNAVL PM",
