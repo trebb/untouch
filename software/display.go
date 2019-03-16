@@ -85,7 +85,6 @@ func (d *display) write(txt string) {
 			break
 		}
 	}
-	fmt.Println(dotlessTxt, dots)
 	for i, c := range fmt.Sprintf("%-8s", dotlessTxt)[:8] {
 		shape := ascii14Segment[c]
 		if dots[i] {
