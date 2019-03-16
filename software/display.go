@@ -75,20 +75,21 @@ func (d *display) write(txt string) {
 	var dots [8]bool
 	i := 0
 	for _, c := range []byte(txt) {
-		if c == "."[0] && i > 0 {
+		if c == '.' && i > 0 {
 			dots[i-1] = true
 		} else {
 			dotlessTxt[i] = c
 			i++
 		}
-		if i >= 8 {
+		if i > 8 {
 			break
 		}
 	}
+	fmt.Println(dotlessTxt, dots)
 	for i, c := range fmt.Sprintf("%-8s", dotlessTxt)[:8] {
 		shape := ascii14Segment[c]
 		if dots[i] {
-			shape |= ascii14Segment[0x0E] // '.'
+			shape |= ascii14Segment['.']
 		}
 		d.buf[2*i] = byte(shape & 0x00FF)
 		d.buf[2*i+1] = byte(shape >> 8)
