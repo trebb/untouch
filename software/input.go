@@ -262,7 +262,7 @@ func input() {
 		case keySa:
 		case keySsa:
 		case keyESC:
-			log.Fatal("escape pressed") // for debugging
+			close(exit) // for debugging
 		default:
 			log.Printf("[%X %X %X] ", cmd[0], cmd[1], cmd[2])
 		}

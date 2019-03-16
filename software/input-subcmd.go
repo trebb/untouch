@@ -425,8 +425,7 @@ func requestInitialMbData() {
 		request{pmSet, pmAmD, 0x0, 0x1, 0x0},
 	)
 	requestAllVTSettings()
-	metro, _ := mbStateItemOk("metronomeOnOff")
-	keepMbState("metronomeOnOff", metro) // create or leave unchanged
+	keepMbState("metronomeOnOff", byte(0)) // create or leave unchanged
 }
 
 func requestAllVTSettings() {

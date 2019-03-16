@@ -22,6 +22,7 @@ var (
 	notImplMsgs = make(chan string, 100)
 	toMb        = make(chan []byte, 100)
 	pnoKeys     = make(chan int8, 100)
+	exit        = make(chan struct{}) // program termination
 )
 
 var seg14 display
@@ -37,52 +38,78 @@ func main() {
 		log.Fatal(err)
 	}
 	defer seg14.close()
+	defer s.Close()
+	defer t.Restore()
 	go parse()
 	go rxd(*s)
 	go txd(*s)
 	go input()
 	keepMbState("mainboardSeen", false)
+WaitForMainboard:
 	for !mbStateItem("mainboardSeen").(bool) {
-		hi()
-		for i := 0; i < 6; i++ {
-			seg14.spn <- spinPattern{runningOutline, []int{7}}
-			time.Sleep(50 * time.Millisecond)
+		select {
+		case <-exit:
+			break WaitForMainboard
+		default:
+			hi()
+			for i := 0; i < 6; i++ {
+				seg14.spn <- spinPattern{runningOutline, []int{7}}
+				time.Sleep(50 * time.Millisecond)
+			}
 		}
 	}
+WaitForPianoMode:
 	for {
-		if _, ok := mbStateItemOk("normalPianoMode"); ok {
-			notify("       *", 0, 1500*time.Millisecond)
-			break
+		select {
+		case <-exit:
+			break WaitForPianoMode
+		default:
+			if _, ok := mbStateItemOk("normalPianoMode"); ok {
+				notify("       *", 0, 1500*time.Millisecond)
+				break WaitForPianoMode
+			}
+			if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
+				notify("      **", 0, 1500*time.Millisecond)
+				break WaitForPianoMode
+			}
+			if _, ok := mbStateItemOk("serviceMode"); ok {
+				notify("    ****", 0, 1500*time.Millisecond)
+				break WaitForPianoMode
+			}
+			for i := 0; i < 6; i++ {
+				seg14.spn <- spinPattern{runningPointer, []int{7}}
+				time.Sleep(50 * time.Millisecond)
+			}
+			fmt.Print("x ")
 		}
-		if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
-			notify("      **", 0, 1500*time.Millisecond)
-			break
-		}
-		if _, ok := mbStateItemOk("serviceMode"); ok {
-			notify("    ****", 0, 1500*time.Millisecond)
-			break
-		}
-		for i := 0; i < 6; i++ {
-			seg14.spn <- spinPattern{runningPointer, []int{7}}
-			time.Sleep(50 * time.Millisecond)
-		}
-		fmt.Print("x ")
 	}
 	if mode, ok := mbStateItemOk("serviceMode"); ok {
 		service(mode.(byte))
 	} else { // normal playing mode
+	ConfirmPlayingMode:
 		for {
-			if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
-				notify("     ***", 0, 1500*time.Millisecond)
-				break
+			select {
+			case <-exit:
+				break ConfirmPlayingMode
+			default:
+				if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
+					notify("     ***", 0, 1500*time.Millisecond)
+					break ConfirmPlayingMode
+				}
 			}
 		}
 		setLocalDefaults()
 	}
+MainLoop:
 	for {
-		x := <-notImplMsgs
-		log.Print("not implemented:", x)
+		select {
+		case <-exit:
+			break MainLoop
+		case x := <-notImplMsgs:
+			log.Print("not implemented:", x)
+		}
 	}
+	log.Print("exit")
 }
 
 func rxd(port serial.Port) {
@@ -888,13 +915,18 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    7F
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coSvc}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coSvc}: func(m msg) {
+		keepMbState("serviceMode", coSvc)
+	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coVer}: func(m msg) {
 		keepMbState("serviceMode", coVer)
-		fmt.Println("Version screen")
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coMUd}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coUUd}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coMUd}: func(m msg) {
+		keepMbState("serviceMode", coVer)
+	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coUUd}: func(m msg) {
+		keepMbState("serviceMode", coVer)
+	},
 	// 55    AA    00    71    01
 	// 55    AA    00    71    01    10
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, mainF, mFact}: func(m msg) {
