@@ -58,213 +58,325 @@ func input() {
 	for {
 		var cmd [3]byte
 		copy(cmd[:], getChar())
-		switch cmd {
-		case keyA:
-			immediateActions()
-		case keyAs:
-		case keyAa:
-		case keyAsa:
-		case keyF:
-			loadRegistration()
-		case keyFs:
-			storeRegistration()
-		case keyFa:
-			storeToSound()
-		case keyFsa:
-		case keyK: // aggregate mode: pianist mode, all sound mode splits
-			if mbStateItem("toneGeneratorMode") == tgSnd {
-				notifyLock(name("keyboardMode", mbStateItem("keyboardMode")))
-			} else {
-				notifyLock("PIANIST")
-			}
+		if mode, ok := mbStateItemOk("serviceMode"); ok && mode == coSvc {
+			serviceModeInput(cmd)
+		} else if _, ok := mbStateItemOk("toneGeneratorMode"); ok { // normal playing mode
+			pianoModeInput(cmd)
+		} else { // useful only during debugging
+			miniInput(cmd)
+		}
+	}
+}
+
+func serviceModeInput(cmd [3]byte) {
+	switch cmd {
+	case keyA: // mode 8
+		issueCmd(servi, sMSel, 0x0, sMTCk)
+		notify(serviceNames["sm8ToneCheck"], 0, 3*time.Second)
+	case keyAs: // mode 3
+		issueCmd(servi, sMSel, 0x0, sMTgA)
+		notify(serviceNames["sm3TgAllChannel"], 0, 3*time.Second)
+	case keyAa: // mode 12
+		issueCmd(servi, sMSel, 0x0, sMKAd)
+		notify(serviceNames["sm12KeyAdjust"], 0, 3*time.Second)
+	case keyAsa:
+	case keyF: // mode 4
+		issueCmd(servi, sMSel, 0x0, sML_R)
+		notify(serviceNames["sm4L/R"], 0, 3*time.Second)
+	case keyFs: // mode 2
+		notify(serviceNames["sm2EffectReverb"], 0, 3*time.Second)
+		issueCmd(servi, sMSel, 0x0, sMEfR)
+	case keyFa: // mode 5
+		notify(serviceNames["sm5EqLevel"], 0, 3*time.Second)
+		issueCmd(servi, sMSel, 0x0, sMEqL)
+	case keyFsa: // mode 13
+		issueCmd(servi, sMSel, 0x0, sMTcS)
+		notify(serviceNames["sm13TouchSelect"], 0, 3*time.Second)
+	case keyK: // mode 9
+		issueCmd(servi, sMSel, 0x0, sMKRw)
+		notify(serviceNames["sm9KeyboardS1S2S3AdRaw"], 0, 3*time.Second)
+	case keyKs: // mode 1
+		issueCmd(servi, sMSel, 0x0, sMPdV)
+		notify(serviceNames["sm1PedalVolumeKeyboardMidi"], 0, 3*time.Second)
+	case keyKa: // mode 11
+		issueCmd(servi, sMSel, 0x0, sMAlK)
+		notify(serviceNames["sm11AllKeyOn"], 0, 3*time.Second)
+	case keyKsa: // mode 7
+		issueCmd(servi, sMSel, 0x0, sMMTc)
+		notify(serviceNames["sm7MaxTouch"], 0, 3*time.Second)
+	case keyM:
+	case keyMs:
+	case keyMa:
+	case keyMsa:
+	case keyP:
+	case keyPs:
+	case keyPa:
+	case keyPsa:
+	case keyR:
+	case keyRs:
+	case keyRa:
+	case keyRsa:
+	case keyS:
+	case keySs: // mode 6
+		issueCmd(servi, sMSel, 0x0, sMUBt)
+		issueCmd(servi, srUBt, 0x0, byte(0x0))
+	case keySa: // mode 14
+		issueCmd(servi, sMSel, 0x0, sMVer)
+		notify(buildDate, 0, 5*time.Second)
+	case keySsa: // mode 10
+		issueCmd(servi, sMSel, 0x0, sMWCk)
+		notify(serviceNames["sm10WaveChecksum"], 0, 3*time.Second)
+	case keyESC:
+		close(exit) // for debugging
+	default:
+		log.Printf("Svc[%X %X %X] ", cmd[0], cmd[1], cmd[2])
+	}
+}
+
+func pianoModeInput(cmd [3]byte) {
+	switch cmd {
+	case keyA:
+		immediateActions()
+	case keyAs:
+	case keyAa:
+	case keyAsa:
+	case keyF:
+		loadRegistration()
+	case keyFs:
+		storeRegistration()
+	case keyFa:
+		storeToSound()
+	case keyFsa:
+	case keyK: // aggregate mode: pianist mode, all sound mode splits
+		if mbStateItem("toneGeneratorMode") == tgSnd {
+			notifyLock(name("keyboardMode", mbStateItem("keyboardMode")))
+		} else {
+			notifyLock("PIANIST")
+		}
+		k, ok := getPnoKey()
+		switch {
+		case !ok:
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		case k == 1: // pianist mode
+			notifyUnlock("PIANIST", 0, 1500*time.Millisecond)
+			keepMbState("toneGeneratorMode", tgPia)
+			issueCmd(tgMod, tgMod, 0x0, tgPia)
+		case k <= 5: // one of the sound mode keyboard modes
+			notifyUnlock(name("keyboardMode", int(k-2)), 0, 1500*time.Millisecond)
+			issueCmd(kbSpl, kbSpM, 0x0, k-2) // KB split mode 0..3
+			keepMbState("toneGeneratorMode", tgSnd)
+			issueCmd(tgMod, tgMod, 0x0, tgSnd)
+			requestAllVTSettings()
+		default:
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		}
+	case keyKs: // aggregate sound: rendering of pianist mode or first/only sound of sound mode
+		switch mbStateItem("toneGeneratorMode") {
+		case tgPia:
+			notifyLock(name("renderingCharacter", mbStateItem("renderingCharacter")))
 			k, ok := getPnoKey()
-			switch {
-			case !ok:
-				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-			case k == 1: // pianist mode
-				notifyUnlock("PIANIST", 0, 1500*time.Millisecond)
-				keepMbState("toneGeneratorMode", tgPia)
-				issueCmd(tgMod, tgMod, 0x0, tgPia)
-			case k <= 5: // one of the sound mode keyboard modes
-				notifyUnlock(name("keyboardMode", int(k-2)), 0, 1500*time.Millisecond)
-				issueCmd(kbSpl, kbSpM, 0x0, k-2) // KB split mode 0..3
-				keepMbState("toneGeneratorMode", tgSnd)
-				issueCmd(tgMod, tgMod, 0x0, tgSnd)
-				requestAllVTSettings()
-			default:
+			if ok && k <= 10 {
+				notifyUnlock(name("renderingCharacter", int(k-1)), 0, 1500*time.Millisecond)
+				issueCmd(pmSet, pmRen, 0x0, k-1)
+				issueCmd(tgMod, tgMod, 0x0, tgPia) // triggers confirmation of the changes
+			} else {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
-		case keyKs: // aggregate sound: rendering of pianist mode or first/only sound of sound mode
-			switch mbStateItem("toneGeneratorMode") {
-			case tgPia:
-				notifyLock(name("renderingCharacter", mbStateItem("renderingCharacter")))
+		case tgSnd:
+			switch mbStateItem("keyboardMode") {
+			case kbSpMSingle:
+				notifyLock(name("instrumentSound", mbStateItem("single")))
 				k, ok := getPnoKey()
-				if ok && k <= 10 {
-					notifyUnlock(name("renderingCharacter", int(k-1)), 0, 1500*time.Millisecond)
-					issueCmd(pmSet, pmRen, 0x0, k-1)
-					issueCmd(tgMod, tgMod, 0x0, tgPia) // triggers confirmation of the changes
+				if ok {
+					notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
+					issueCmd(instr, iSing, 0x0, k-1)
+					issueCmd(tgMod, tgMod, 0x0, tgSnd)
+					requestAllVTSettings()
 				} else {
 					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
-			case tgSnd:
-				switch mbStateItem("keyboardMode") {
-				case kbSpMSingle:
-					notifyLock(name("instrumentSound", mbStateItem("single")))
-					k, ok := getPnoKey()
-					if ok {
-						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iSing, 0x0, k-1)
-						issueCmd(tgMod, tgMod, 0x0, tgSnd)
-						requestAllVTSettings()
-					} else {
-						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-					}
-				case kbSpMDual:
-					notifyLock(name("instrumentSound", mbStateItem("dual1")))
-					k, ok := getPnoKey()
-					if ok {
-						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iDua1, 0x0, k-1)
-						issueCmd(tgMod, tgMod, 0x0, tgSnd)
-						requestAllVTSettings()
-					} else {
-						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-					}
-				case kbSpMSplit:
-					notifyLock(name("instrumentSound", mbStateItem("split1")))
-					k, ok := getPnoKey()
-					if ok {
-						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iSpl1, 0x0, k-1)
-						issueCmd(tgMod, tgMod, 0x0, tgSnd)
-						requestAllVTSettings()
-					} else {
-						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-					}
-				case kbSpM4hands:
-					notifyLock(name("instrumentSound", mbStateItem("4hands1")))
-					k, ok := getPnoKey()
-					if ok {
-						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, i4Hd1, 0x0, k-1)
-						issueCmd(tgMod, tgMod, 0x0, tgSnd)
-						requestAllVTSettings()
-					} else {
-						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-					}
-				default:
-					log.Print("bad keyboardMode")
+			case kbSpMDual:
+				notifyLock(name("instrumentSound", mbStateItem("dual1")))
+				k, ok := getPnoKey()
+				if ok {
+					notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
+					issueCmd(instr, iDua1, 0x0, k-1)
+					issueCmd(tgMod, tgMod, 0x0, tgSnd)
+					requestAllVTSettings()
+				} else {
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				}
+			case kbSpMSplit:
+				notifyLock(name("instrumentSound", mbStateItem("split1")))
+				k, ok := getPnoKey()
+				if ok {
+					notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
+					issueCmd(instr, iSpl1, 0x0, k-1)
+					issueCmd(tgMod, tgMod, 0x0, tgSnd)
+					requestAllVTSettings()
+				} else {
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				}
+			case kbSpM4hands:
+				notifyLock(name("instrumentSound", mbStateItem("4hands1")))
+				k, ok := getPnoKey()
+				if ok {
+					notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
+					issueCmd(instr, i4Hd1, 0x0, k-1)
+					issueCmd(tgMod, tgMod, 0x0, tgSnd)
+					requestAllVTSettings()
+				} else {
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
 			default:
-				log.Print("bad toneGeneratorMode")
+				log.Print("bad keyboardMode")
 			}
-		case keyKa: // aggregate sound: second sound of sound mode
-			switch mbStateItem("toneGeneratorMode") {
-			case tgPia:
+		default:
+			log.Print("bad toneGeneratorMode")
+		}
+	case keyKa: // aggregate sound: second sound of sound mode
+		switch mbStateItem("toneGeneratorMode") {
+		case tgPia:
+			notifyUnlock("NO 2ND", 0, 1500*time.Millisecond)
+		case tgSnd:
+			switch mbStateItem("keyboardMode") {
+			case kbSpMSingle:
 				notifyUnlock("NO 2ND", 0, 1500*time.Millisecond)
-			case tgSnd:
-				switch mbStateItem("keyboardMode") {
-				case kbSpMSingle:
-					notifyUnlock("NO 2ND", 0, 1500*time.Millisecond)
-				case kbSpMDual:
-					notifyLock(name("instrumentSound", mbStateItem("dual2")))
-					k, ok := getPnoKey()
-					if ok {
-						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iDua2, 0x0, k-1)
-						issueCmd(tgMod, tgMod, 0x0, tgSnd)
-						requestAllVTSettings()
-					} else {
-						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-					}
-				case kbSpMSplit:
-					notifyLock(name("instrumentSound", mbStateItem("split2")))
-					k, ok := getPnoKey()
-					if ok {
-						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, iSpl2, 0x0, k-1)
-						issueCmd(tgMod, tgMod, 0x0, tgSnd)
-						requestAllVTSettings()
-					} else {
-						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-					}
-				case kbSpM4hands:
-					notifyLock(name("instrumentSound", mbStateItem("4hands2")))
-					k, ok := getPnoKey()
-					if ok {
-						notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
-						issueCmd(instr, i4Hd2, 0x0, k-1)
-						issueCmd(tgMod, tgMod, 0x0, tgSnd)
-						requestAllVTSettings()
-					} else {
-						notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-					}
-				default:
-					log.Print("bad keyboardMode")
+			case kbSpMDual:
+				notifyLock(name("instrumentSound", mbStateItem("dual2")))
+				k, ok := getPnoKey()
+				if ok {
+					notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
+					issueCmd(instr, iDua2, 0x0, k-1)
+					issueCmd(tgMod, tgMod, 0x0, tgSnd)
+					requestAllVTSettings()
+				} else {
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				}
+			case kbSpMSplit:
+				notifyLock(name("instrumentSound", mbStateItem("split2")))
+				k, ok := getPnoKey()
+				if ok {
+					notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
+					issueCmd(instr, iSpl2, 0x0, k-1)
+					issueCmd(tgMod, tgMod, 0x0, tgSnd)
+					requestAllVTSettings()
+				} else {
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				}
+			case kbSpM4hands:
+				notifyLock(name("instrumentSound", mbStateItem("4hands2")))
+				k, ok := getPnoKey()
+				if ok {
+					notifyUnlock(name("instrumentSound", int(k-1)), 0, 1500*time.Millisecond)
+					issueCmd(instr, i4Hd2, 0x0, k-1)
+					issueCmd(tgMod, tgMod, 0x0, tgSnd)
+					requestAllVTSettings()
+				} else {
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 				}
 			default:
-				log.Print("bad toneGeneratorMode")
+				log.Print("bad keyboardMode")
 			}
-		case keyKsa:
-		case keyM:
-			issueCmd(metro, mVolu, 0x0, mbStateItem("metronomeVolume"))
-			keepMbState("metronomeOnOff", issueTglCmd("metronomeOnOff", metro, mOnOf, 0x0))
-		case keyMs:
-			notifyLock(fmt.Sprint(mbStateItem("metronomeTempo"), "/min"))
-			k, ok := getPnoKey()
-			if ok {
-				tempo := scaleVal(10, 400, 88, k)
-				notifyUnlock(fmt.Sprint(tempo, "/min"), 0, 1500*time.Millisecond)
-				issueCmd(metro, mTmpo, 0x0, uint16(tempo))
+		default:
+			log.Print("bad toneGeneratorMode")
+		}
+	case keyKsa:
+	case keyM:
+		issueCmd(metro, mVolu, 0x0, mbStateItem("metronomeVolume"))
+		keepMbState("metronomeOnOff", issueTglCmd("metronomeOnOff", metro, mOnOf, 0x0))
+	case keyMs:
+		notifyLock(fmt.Sprint(mbStateItem("metronomeTempo"), "/min"))
+		k, ok := getPnoKey()
+		if ok {
+			tempo := scaleVal(10, 400, 88, k)
+			notifyUnlock(fmt.Sprint(tempo, "/min"), 0, 1500*time.Millisecond)
+			issueCmd(metro, mTmpo, 0x0, uint16(tempo))
+			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
+		} else {
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		}
+	case keyMa:
+		notifyLock(name("rhythmPattern", mbStateItem("rhythmPattern")))
+		k, ok := getPnoKey()
+		if ok && int(k)-1 < len(rhythmGroupIndex) {
+			notifyLock(name("rhythmGroup", int(k-1)))
+			k2, ok2 := getPnoKey()
+			if ok2 && k2 >= 42 { // middle-D = begin of rhythmGroup k
+				pat := byte(int(k2) - 42 + rhythmGroupIndex[k-1])
+				notifyUnlock(name("rhythmPattern", pat), 0, 1500*time.Millisecond)
+				issueCmd(metro, mSign, 0x0, pat)
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			} else {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
-		case keyMa:
-			notifyLock(name("rhythmPattern", mbStateItem("rhythmPattern")))
-			k, ok := getPnoKey()
-			if ok && int(k)-1 < len(rhythmGroupIndex) {
-				notifyLock(name("rhythmGroup", int(k-1)))
-				k2, ok2 := getPnoKey()
-				if ok2 && k2 >= 42 { // middle-D = begin of rhythmGroup k
-					pat := byte(int(k2) - 42 + rhythmGroupIndex[k-1])
-					notifyUnlock(name("rhythmPattern", pat), 0, 1500*time.Millisecond)
-					issueCmd(metro, mSign, 0x0, pat)
-					issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
-				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-				}
-			} else {
-				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
-			}
-		case keyMsa:
-			tapTempo()
-		case keyP:
-			play()
-		case keyPs:
-			selectPlaySong(0)
-		case keyPa:
-			selectPlaySong(1)
-		case keyPsa:
-			selectPlaySong(2)
-		case keyR:
-			record()
-		case keyRs:
-			selectRecordSong(0)
-		case keyRa:
-			selectRecordSong(1)
-		case keyRsa:
-			eraseSongParts()
-		case keyS:
-			settings()
-		case keySs:
-			virtualTechnician()
-		case keySa:
-		case keySsa:
-		case keyESC:
-			close(exit) // for debugging
-		default:
-			log.Printf("[%X %X %X] ", cmd[0], cmd[1], cmd[2])
+		} else {
+			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 		}
+	case keyMsa:
+		tapTempo()
+	case keyP:
+		play()
+	case keyPs:
+		selectPlaySong(0)
+	case keyPa:
+		selectPlaySong(1)
+	case keyPsa:
+		selectPlaySong(2)
+	case keyR:
+		record()
+	case keyRs:
+		selectRecordSong(0)
+	case keyRa:
+		selectRecordSong(1)
+	case keyRsa:
+		eraseSongParts()
+	case keyS:
+		settings()
+	case keySs:
+		virtualTechnician()
+	case keySa:
+	case keySsa:
+	case keyESC:
+		close(exit) // for debugging
+	default:
+		log.Printf("Pno[%X %X %X] ", cmd[0], cmd[1], cmd[2])
+	}
+}
+
+func miniInput(cmd [3]byte) {
+	switch cmd {
+	case keyA:
+	case keyAs:
+	case keyAa:
+	case keyAsa:
+	case keyF:
+	case keyFs:
+	case keyFa:
+	case keyFsa:
+	case keyK:
+	case keyKs:
+	case keyKa:
+	case keyKsa:
+	case keyM:
+	case keyMs:
+	case keyMa:
+	case keyMsa:
+	case keyP:
+	case keyPs:
+	case keyPa:
+	case keyPsa:
+	case keyR:
+	case keyRs:
+	case keyRa:
+	case keyRsa:
+	case keyS:
+	case keySs:
+	case keySa:
+	case keySsa:
+	case keyESC:
+		close(exit) // for debugging
+	default:
+		log.Printf("Min[%X %X %X] ", cmd[0], cmd[1], cmd[2])
 	}
 }

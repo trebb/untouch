@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var buildDate string
+var buildDate string // cf. Makefile
 
 type msg [256]byte // Big Enough (TM)
 
@@ -106,7 +106,7 @@ MainLoop:
 		case <-exit:
 			break MainLoop
 		case x := <-notImplMsgs:
-			log.Print("not implemented:", x)
+			log.Print("not implemented", x)
 		}
 	}
 	log.Print("exit")
@@ -293,10 +293,7 @@ func notImpl(m interface{}, what ...string) {
 	for _, w := range what {
 		line += w
 	}
-	if line == "" {
-		line = "Not implemented"
-	}
-	line += ":"
+	line = "[" + line + "]:"
 	switch message := m.(type) {
 	case []byte:
 		for _, c := range message {
@@ -818,12 +815,21 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    6E    01    3F
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, biSng, 0x40}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    60
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srPdV}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srPdV}: func(m msg) { observeServiceMode1(m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTgA}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srUBt}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srUBt}: func(m msg) { observeServiceMode6(m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTCk}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKRw}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srWCk}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKRw}: func(m msg) { observeServiceMode9(m[7], m[9:]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srWCk}: func(m msg) {
+		switch m[7] {
+		case 1:
+			notify(fmt.Sprintf("%0X", m[9:]), 0, 5*time.Second)
+		case 2:
+			notify(fmt.Sprintf("Chks.%0X", m[9:]), 0, 5*time.Hour)
+		default:
+			notImpl(m, "unknown wave checksum msg")
+		}
+	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srAlK}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKAd}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) { notImpl(m) },

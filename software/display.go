@@ -77,7 +77,7 @@ func (d *display) write(txt string) {
 	for _, c := range []byte(txt) {
 		if c == '.' && i > 0 {
 			dots[i-1] = true
-		} else {
+		} else if i < 8 {
 			dotlessTxt[i] = c
 			i++
 		}

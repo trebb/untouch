@@ -609,10 +609,30 @@ var immediateActionNames = map[string]string{
 }
 
 var serviceNames = map[string]string{
-	"serviceMode":            "SERVICE",
-	"mbFirmwareUpdate":       "FW UPDTE",
-	"updateDone":             "UPD DONE",
-	"updateOk":               "UPD OK",
+	// power on + pedals 1, 2
+	"serviceMode":                "SRVC.MODE",
+	"sm0Lcd":                     "LCD",         // service mode 00, LCD
+	"sm1PedalVolumeKeyboardMidi": "Pd.Vo.Kb.MI", // service mode 01, pedal, volume, keyboard, midi, USB midi
+	"sm2EffectReverb":            "EFF.REV",     // service mode 02, effect, reverb
+	"sm3TgAllChannel":            "TG AllCh",    // service mode 03, TG all channel
+	"sm4L/R":                     "L/R",         // service mode 04, L/R
+	"sm5EqLevel":                 "EQ LEVEL",    // service mode 05, EQ level
+	"sm6UsbBluetooth":            "USB BT",      // service mode 06, USB device, bluetooth audio
+	"sm7MaxTouch":                "MAX.TOUCH",   // service mode 07, max touch
+	"sm8ToneCheck":               "TONE CHK",    // service mode 08, tone check
+	"sm9KeyboardS1S2S3AdRaw":     "KEYS+A/D", // service mode 09, keyboard S1, S2, S3; AD raw value
+	"sm10WaveChecksum":           "WAVE.CHKS",   // service mode 10, wave checksum
+	"sm11AllKeyOn":               "ALL.KEY.ON",  // service mode 11, all key on
+	"sm12KeyAdjust":              "KEY.ADJST",   // service mode 12, key adjust
+	"sm13TouchSelect":            "TOUCH.SEL",   // service mode 13, touch select
+	"sm14Version":                "UI.VERSIO",   // service mode 14, version (of UI)
+	// power on 10 seconds
+	"mbFirmwareUpdate": "FW.UPDATE",
+	"updateDone":       "UPDT.DONE",
+	"updateOk":         "UPDATE.OK",
+	// power on + pedals 2,3
+	"mbFirmwareVersionMode": "MB FW ID",
+	// power on + pedals 1, 2, 3
 	"uiUpdateNotImplemented": "NOT IMPL",
 }
 

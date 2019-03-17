@@ -246,7 +246,8 @@ const ( // (auRec, 0x22) USB audio recorder
 )
 
 const ( // (servi, 0x60) service
-	// service mode selection
+	sMSel byte = 0x00 // select service mode
+	// selectable service modes
 	sMLcd byte = 0x00 // service mode 00, LCD
 	sMPdV byte = 0x01 // service mode 01, pedal, volume, keyboard, midi, USB midi
 	sMEfR byte = 0x02 // service mode 02, effect, reverb
