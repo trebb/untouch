@@ -474,7 +474,7 @@ func inputSettingsValue(id string, cmd byte, subCmd byte, lowerBound int8, upper
 	if ok && kMiD >= lowerBound && kMiD <= upperBound {
 		notifyUnlock(name(id, kMiD), 0, 1500*time.Millisecond)
 		keepMbState(id, kMiD)
-		issueCmd(cmd, subCmd, 0x0, 0x0, kMiD)
+		issueCmd(cmd, subCmd, 0x0, byte(0x0), kMiD)
 		issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 	} else {
 		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
@@ -663,7 +663,7 @@ func settings() {
 			if ok && kMiD >= lowerBound && kMiD <= upperBound {
 				notifyUnlock(scaledValue(kMiD, 440, 0.5, "Hz"), 0, 1500*time.Millisecond)
 				keepMbState(id, kMiD)
-				issueCmd(mainF, mTung, 0x0, 0x0, kMiD)
+				issueCmd(mainF, mTung, 0x0, byte(0x0), kMiD)
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 			} else {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
