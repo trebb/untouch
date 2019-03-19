@@ -24,7 +24,7 @@ func service(mode byte) {
 
 func displayVersionScreenContent() {
 	for {
-		notify(serviceNames["mbFirmwareUpdate"], 0, 3*time.Second)
+		notify(serviceNames["mbFirmwareVersionMode"], 0, 3*time.Second)
 		time.Sleep(3 * time.Second)
 		notify(fmt.Sprint(mbStateItem("romName")), 0, 1500*time.Millisecond)
 		time.Sleep(1500 * time.Millisecond)
