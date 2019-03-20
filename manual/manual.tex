@@ -279,9 +279,84 @@ USB memory will be used if present; otherwise, internal storage of the currently
 \img {registration.tex}
 \img {store_to_sound}
 \img {immediate_action.tex}
+\clearpage
 \begin{appendix}
-  \section[Service Screen]{Service Screen}
-  TODO
+  \section[Service Mode]{Service Mode --- Pedals 1, 2 + Power On}
+  \begin{multicols}{3}
+    \subsection[Keyboard S1--3; A/D Raw]{Keyboard S1--3; A/D Raw Value --- \UiKey{\SND}}
+    (Mode 9)
+    \subsection[Pedal, Volume, KB, MIDI]{Pedal, Volume, Keyboard, MIDI --- \UiKey{\I}\UiKey{\SND}}
+    (Mode 1)
+    \subsection[All Key On]{All Key On --- \UiKey{\II}\UiKey{\SND}}
+    (Mode 11)
+    \begin{itemize}
+    \item[] \UiKey{\PL} cancel
+    \end{itemize}
+    \subsection[Tone Check]{Tone Check --- \UiKey{\DO}}
+    (Mode 8)
+    \begin{itemize}
+    \item[] \UiKey{\REC} decrement sound number
+    \item[] \UiKey{\PL} increment sound number
+    \end{itemize}
+    \subsection[TG All Channel]{TG All Channel --- \UiKey{\I}\UiKey{\DO}}
+    (Mode 3)
+    \begin{itemize}
+    \item[] \UiKey{\REC} run
+    \item[] \UiKey{\PL} stop
+    \end{itemize}
+    \subsection[UI Version]{User Interface Version --- \UiKey{\I}\UiKey{\SET}}
+    (Mode 14)
+    \subsection[Wave Checksum]{Wave Checksum --- \UiKey{\I}\UiKey{\II}\UiKey{\SET}}
+    (Mode 10)
+    \begin{itemize}
+    \item[] \UiKey{\PL} cancel
+    \end{itemize}
+    \subsection[Key Adjust]{Key Adjust --- \UiKey{\II}\UiKey{\DO}}
+    (Mode 12)
+    \subsection[L/R]{L/R --- \UiKey{\REG}}
+    (Mode 4)
+    \begin{itemize}
+    \item[] \UiKey{\REC} L
+    \item[] \UiKey{\PL} R
+    \end{itemize}
+    \subsection[Effect, Reverb]{Effect, Reverb --- \UiKey{\I}\UiKey{\REG}}
+    (Mode 2)
+    \begin{itemize}
+    \item[] \UiKey{\REC} reverb
+    \item[] \UiKey{\PL} effects
+    \end{itemize}
+    \subsection[EQ Level]{EQ Level --- \UiKey{\II}\UiKey{\REG}}
+    (Mode 5)
+    \begin{itemize}
+    \item[] \UiKey{\MET} 1 on
+    \item[] \UiKey{\I}\UiKey{\MET} 2 on
+    \item[] \UiKey{\II}\UiKey{\MET} 3 on
+    \item[] \UiKey{\I}\UiKey{\II}\UiKey{\MET} 4 on
+    \item[] \UiKey{\PL} play
+    \item[] \UiKey{\I}\UiKey{\PL} mute
+    \item[] \UiKey{\REC} speaker EQ on
+    \item[] \UiKey{\I}\UiKey{\REC} speaker EQ off
+    \end{itemize}
+    \subsection[Touch Select]{Touch Select --- \UiKey{\I}\UiKey{\II}\UiKey{\REG}}
+    (Mode 13)
+    \begin{itemize}
+    \item[] \UiKey{\MET} K-15e
+    \item[] \UiKey{\I}\UiKey{\MET} K-200
+    \item[] \UiKey{\II}\UiKey{\MET} K-300,400
+    \item[] \UiKey{\I}\UiKey{\II}\UiKey{\MET} K-500,600,700,800
+    \item[] \UiKey{\PL} save
+    \end{itemize}
+    \subsection[Max Touch]{Max Touch --- \UiKey{\I}\UiKey{\II}\UiKey{\SND}}
+    (Mode 7)
+    \begin{itemize}
+    \item[] \UiKey{\REC} decrement sound number
+    \item[] \UiKey{\PL} increment sound number
+    \end{itemize}
+    \subsection[USB Device, BT Audio]{USB Device, Bluetooth Audio --- \UiKey{\I}\UiKey{\SET}}
+    (Mode 6)
+  \end{multicols}
+\section[Firmware Version]{Firmware Version --- Pedals 2, 3 + Power On}
+\section[Firmware Update]{Firmware Update ---  Power On 10 Seconds}
 \end{appendix}
 
 \vspace*{\fill}

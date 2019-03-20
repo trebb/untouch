@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+type uiKey [3]byte
+
 // func input(){
 // 	// all combinations available:
 // 	// shift alt altgr
@@ -15,48 +17,49 @@ import (
 // 	}
 // }
 var (
-	keyA   = [...]byte{0x61, 0x00, 0x00} // plain a
-	keyAs  = [...]byte{0x41, 0x00, 0x00} // shift-A
-	keyAa  = [...]byte{0x1B, 0x61, 0x00} // alt-a
-	keyAsa = [...]byte{0x1B, 0x41, 0x00} // shift-alt-A
-	keyF   = [...]byte{0x66, 0x00, 0x00} // etc.
-	keyFs  = [...]byte{0x46, 0x00, 0x00}
-	keyFa  = [...]byte{0x1B, 0x66, 0x00}
-	keyFsa = [...]byte{0x1B, 0x46, 0x00}
-	keyK   = [...]byte{0x6B, 0x00, 0x00}
-	keyKs  = [...]byte{0x4B, 0x00, 0x00}
-	keyKa  = [...]byte{0x1B, 0x6B, 0x00}
-	keyKsa = [...]byte{0x1B, 0x4B, 0x00}
-	keyM   = [...]byte{0x6D, 0x00, 0x00}
-	keyMs  = [...]byte{0x4D, 0x00, 0x00}
-	keyMa  = [...]byte{0x1B, 0x6D, 0x00}
-	keyMsa = [...]byte{0x1B, 0x4D, 0x00}
-	keyP   = [...]byte{0x70, 0x00, 0x00}
-	keyPs  = [...]byte{0x50, 0x00, 0x00}
-	keyPa  = [...]byte{0x1B, 0x70, 0x00}
-	keyPsa = [...]byte{0x1B, 0x50, 0x00}
-	keyR   = [...]byte{0x72, 0x00, 0x00}
-	keyRs  = [...]byte{0x52, 0x00, 0x00}
-	keyRa  = [...]byte{0x1B, 0x72, 0x00}
-	keyRsa = [...]byte{0x1B, 0x52, 0x00}
-	keyS   = [...]byte{0x73, 0x00, 0x00}
-	keySs  = [...]byte{0x53, 0x00, 0x00}
-	keySa  = [...]byte{0x1B, 0x73, 0x00}
-	keySsa = [...]byte{0x1B, 0x53, 0x00}
-	// key1 = [...]byte{0x31, 0x00, 0x00}
-	// key2 = [...]byte{0x32, 0x00, 0x00}
-	// key3 = [...]byte{0x33, 0x00, 0x00}
-	// key4 = [...]byte{0x34, 0x00, 0x00}
-	// key5 = [...]byte{0x35, 0x00, 0x00}
-	// key6 = [...]byte{0x36, 0x00, 0x00}
-	// key7 = [...]byte{0x37, 0x00, 0x00}
-	// key8 = [...]byte{0x38, 0x00, 0x00}
-	keyESC = [...]byte{0x1B, 0x00, 0x00}
+	keyNil uiKey                     // zero value of type uiKey
+	keyA   = uiKey{0x61, 0x00, 0x00} // plain a
+	keyAs  = uiKey{0x41, 0x00, 0x00} // shift-A
+	keyAa  = uiKey{0x1B, 0x61, 0x00} // alt-a
+	keyAsa = uiKey{0x1B, 0x41, 0x00} // shift-alt-A
+	keyF   = uiKey{0x66, 0x00, 0x00} // etc.
+	keyFs  = uiKey{0x46, 0x00, 0x00}
+	keyFa  = uiKey{0x1B, 0x66, 0x00}
+	keyFsa = uiKey{0x1B, 0x46, 0x00}
+	keyK   = uiKey{0x6B, 0x00, 0x00}
+	keyKs  = uiKey{0x4B, 0x00, 0x00}
+	keyKa  = uiKey{0x1B, 0x6B, 0x00}
+	keyKsa = uiKey{0x1B, 0x4B, 0x00}
+	keyM   = uiKey{0x6D, 0x00, 0x00}
+	keyMs  = uiKey{0x4D, 0x00, 0x00}
+	keyMa  = uiKey{0x1B, 0x6D, 0x00}
+	keyMsa = uiKey{0x1B, 0x4D, 0x00}
+	keyP   = uiKey{0x70, 0x00, 0x00}
+	keyPs  = uiKey{0x50, 0x00, 0x00}
+	keyPa  = uiKey{0x1B, 0x70, 0x00}
+	keyPsa = uiKey{0x1B, 0x50, 0x00}
+	keyR   = uiKey{0x72, 0x00, 0x00}
+	keyRs  = uiKey{0x52, 0x00, 0x00}
+	keyRa  = uiKey{0x1B, 0x72, 0x00}
+	keyRsa = uiKey{0x1B, 0x52, 0x00}
+	keyS   = uiKey{0x73, 0x00, 0x00}
+	keySs  = uiKey{0x53, 0x00, 0x00}
+	keySa  = uiKey{0x1B, 0x73, 0x00}
+	keySsa = uiKey{0x1B, 0x53, 0x00}
+	// key1 = uiKey{0x31, 0x00, 0x00}
+	// key2 = uiKey{0x32, 0x00, 0x00}
+	// key3 = uiKey{0x33, 0x00, 0x00}
+	// key4 = uiKey{0x34, 0x00, 0x00}
+	// key5 = uiKey{0x35, 0x00, 0x00}
+	// key6 = uiKey{0x36, 0x00, 0x00}
+	// key7 = uiKey{0x37, 0x00, 0x00}
+	// key8 = uiKey{0x38, 0x00, 0x00}
+	keyESC = uiKey{0x1B, 0x00, 0x00}
 )
 
 func input() {
 	for {
-		var cmd [3]byte
+		var cmd uiKey
 		copy(cmd[:], getChar())
 		if mode, ok := mbStateItemOk("serviceMode"); ok && mode == coSvc {
 			serviceModeInput(cmd)
@@ -68,14 +71,50 @@ func input() {
 	}
 }
 
-func serviceModeInput(cmd [3]byte) {
+func serviceModeInput(cmd uiKey) {
 	switch cmd {
 	case keyA: // mode 8
 		issueCmd(servi, sMSel, 0x0, sMTCk)
 		notify(serviceNames["sm8ToneCheck"], 0, 3*time.Second)
+		go func() {
+			controlKeys := openSmControlKeys()
+			var sound uint8 = 0
+			issueCmd(servi, srTCk, 0x0, byte(0x0), sound)
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyR: // sound_number--
+					sound -= 1
+					issueCmd(servi, srTCk, 0x0, byte(0x0), sound)
+				case keyP: // sound_number++
+					sound += 1
+					issueCmd(servi, srTCk, 0x0, byte(0x0), sound)
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyAs: // mode 3
 		issueCmd(servi, sMSel, 0x0, sMTgA)
 		notify(serviceNames["sm3TgAllChannel"], 0, 3*time.Second)
+		go func() {
+			controlKeys := openSmControlKeys()
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyR:
+					issueCmd(servi, srTgA, 0x0, byte(1))
+					notify("RUNNING", 0, 5*time.Second)
+				case keyP:
+					issueCmd(servi, srTgA, 0x0, byte(0))
+					notify("STOPPED", 0, 5*time.Second)
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyAa: // mode 12
 		issueCmd(servi, sMSel, 0x0, sMKAd)
 		notify(serviceNames["sm12KeyAdjust"], 0, 3*time.Second)
@@ -83,15 +122,125 @@ func serviceModeInput(cmd [3]byte) {
 	case keyF: // mode 4
 		issueCmd(servi, sMSel, 0x0, sML_R)
 		notify(serviceNames["sm4L/R"], 0, 3*time.Second)
+		go func() {
+			controlKeys := openSmControlKeys()
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyR: // L
+					issueCmd(servi, srL_R, 0x0, byte(0x7F))
+					issueCmd(servi, srL_R, 0x1, byte(0x0))
+					notify("L", 0, 5*time.Second)
+				case keyP: // R
+					issueCmd(servi, srL_R, 0x1, byte(0x7F))
+					issueCmd(servi, srL_R, 0x0, byte(0x0))
+					notify("R", 0, 5*time.Second)
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyFs: // mode 2
 		notify(serviceNames["sm2EffectReverb"], 0, 3*time.Second)
 		issueCmd(servi, sMSel, 0x0, sMEfR)
+		go func() {
+			controlKeys := openSmControlKeys()
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyR:
+					issueCmd(servi, srEfR, 0x1, byte(0x7F))
+					notify("REVERB", 0, 5*time.Second)
+				case keyP:
+					issueCmd(servi, srEfR, 0x0, byte(0x7F))
+					notify("EFFECTS", 0, 5*time.Second)
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyFa: // mode 5
 		notify(serviceNames["sm5EqLevel"], 0, 3*time.Second)
 		issueCmd(servi, sMSel, 0x0, sMEqL)
+		go func() {
+			controlKeys := openSmControlKeys()
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyM:
+					issueCmd(servi, srEqL, 0x0, byte(0x7F))
+					issueCmd(servi, srEqL, 0x1, byte(0x0))
+					issueCmd(servi, srEqL, 0x2, byte(0x0))
+					issueCmd(servi, srEqL, 0x3, byte(0x0))
+					notify("1 ON", 0, 5*time.Second)
+				case keyMs:
+					issueCmd(servi, srEqL, 0x1, byte(0x7F))
+					issueCmd(servi, srEqL, 0x0, byte(0x0))
+					issueCmd(servi, srEqL, 0x2, byte(0x0))
+					issueCmd(servi, srEqL, 0x3, byte(0x0))
+					notify("2 ON", 0, 5*time.Second)
+				case keyMa:
+					issueCmd(servi, srEqL, 0x2, byte(0x7F))
+					issueCmd(servi, srEqL, 0x0, byte(0x0))
+					issueCmd(servi, srEqL, 0x1, byte(0x0))
+					issueCmd(servi, srEqL, 0x3, byte(0x0))
+					notify("3 ON", 0, 5*time.Second)
+				case keyMsa:
+					issueCmd(servi, srEqL, 0x3, byte(0x7F))
+					issueCmd(servi, srEqL, 0x0, byte(0x0))
+					issueCmd(servi, srEqL, 0x1, byte(0x0))
+					issueCmd(servi, srEqL, 0x2, byte(0x0))
+					notify("4 ON", 0, 5*time.Second)
+				case keyP:
+					issueCmd(servi, srEqL, 0x9, byte(0x0))
+					notify("PLAY", 0, 5*time.Second)
+				case keyPs:
+					issueCmd(servi, srEqL, 0x9, byte(0x1))
+					notify("MUTE", 0, 5*time.Second)
+				case keyR:
+					issueCmd(servi, srEqL, 0x8, byte(0x1))
+					notify("SP.EQ ON", 0, 5*time.Second)
+				case keyRs:
+					issueCmd(servi, srEqL, 0x8, byte(0x0))
+					notify("SP.EQ OFF", 0, 5*time.Second)
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyFsa: // mode 13
 		issueCmd(servi, sMSel, 0x0, sMTcS)
 		notify(serviceNames["sm13TouchSelect"], 0, 3*time.Second)
+		go func() {
+			var model byte
+			controlKeys := openSmControlKeys()
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyM:
+					model = byte(0x0)
+					issueCmd(servi, srTcS, 0x0, model)
+				case keyMs:
+					model = byte(0x1)
+					issueCmd(servi, srTcS, 0x0, model)
+				case keyMa:
+					model = byte(0x2)
+					issueCmd(servi, srTcS, 0x0, model)
+				case keyMsa:
+					model = byte(0x3)
+					issueCmd(servi, srTcS, 0x0, model)
+				case keyP:
+					issueCmd(servi, srTcS, 0x10, model)
+					notify("SAVED", 0, 5*time.Second)
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyK: // mode 9
 		issueCmd(servi, sMSel, 0x0, sMKRw)
 		notify(serviceNames["sm9KeyboardS1S2S3AdRaw"], 0, 3*time.Second)
@@ -101,21 +250,48 @@ func serviceModeInput(cmd [3]byte) {
 	case keyKa: // mode 11
 		issueCmd(servi, sMSel, 0x0, sMAlK)
 		notify(serviceNames["sm11AllKeyOn"], 0, 3*time.Second)
+		go func() {
+			controlKeys := openSmControlKeys()
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyP:
+					issueCmd(servi, srAlK, 0x0, byte(0))
+					closeSmControlKeys()
+					break Loop
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyKsa: // mode 7
 		issueCmd(servi, sMSel, 0x0, sMMTc)
 		notify(serviceNames["sm7MaxTouch"], 0, 3*time.Second)
-	case keyM:
-	case keyMs:
-	case keyMa:
-	case keyMsa:
-	case keyP:
-	case keyPs:
-	case keyPa:
-	case keyPsa:
-	case keyR:
-	case keyRs:
-	case keyRa:
-	case keyRsa:
+		go func() {
+			controlKeys := openSmControlKeys()
+			var sound uint8 = 0
+			issueCmd(servi, srMTc, 0x1, sound)
+			notify(fmt.Sprintf("Sound.%3d", sound), 0, 5*time.Second)
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyR: // sound_number--
+					sound -= 1
+					issueCmd(servi, srMTc, 0x1, sound)
+					notify(fmt.Sprintf("Sound.%3d", sound), 0, 5*time.Second)
+				case keyP: // sound_number++
+					sound += 1
+					issueCmd(servi, srMTc, 0x1, sound)
+					notify(fmt.Sprintf("Sound.%3d", sound), 0, 5*time.Second)
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
+	case keyM, keyMs, keyMa, keyMsa, keyP, keyPs, keyPa, keyPsa, keyR, keyRs, keyRa, keyRsa:
+		smControlKeys <- cmd
 	case keyS:
 	case keySs: // mode 6
 		issueCmd(servi, sMSel, 0x0, sMUBt)
@@ -126,6 +302,22 @@ func serviceModeInput(cmd [3]byte) {
 	case keySsa: // mode 10
 		issueCmd(servi, sMSel, 0x0, sMWCk)
 		notify(serviceNames["sm10WaveChecksum"], 0, 3*time.Second)
+		go func() {
+			controlKeys := openSmControlKeys()
+		Loop:
+			for {
+				k := <-controlKeys
+				switch k {
+				case keyP:
+					issueCmd(servi, srWCk, 0x0, byte(0))
+					closeSmControlKeys()
+					notify("cancelled", 0, 1500*time.Millisecond)
+					break Loop
+				case keyNil:
+					break Loop
+				}
+			}
+		}()
 	case keyESC:
 		close(exit) // for debugging
 	default:
@@ -133,7 +325,39 @@ func serviceModeInput(cmd [3]byte) {
 	}
 }
 
-func pianoModeInput(cmd [3]byte) {
+var (
+	smControlKeys           = make(chan uiKey)
+	newSmControlKeyListener = make(chan (chan uiKey))
+)
+
+func openSmControlKeys() <-chan uiKey {
+	var c = make(chan uiKey)
+	newSmControlKeyListener <- c
+	return c
+}
+
+func closeSmControlKeys() {
+	newSmControlKeyListener <- nil
+}
+
+func smControlKeyMonitor() {
+	var listener chan<- uiKey
+	for {
+		select {
+		case l := <-newSmControlKeyListener:
+			if listener != nil {
+				close(listener)
+			}
+			listener = l
+		case cmd := <-smControlKeys:
+			if listener != nil {
+				listener <- cmd
+			}
+		}
+	}
+}
+
+func pianoModeInput(cmd uiKey) {
 	switch cmd {
 	case keyA:
 		immediateActions()
@@ -344,7 +568,7 @@ func pianoModeInput(cmd [3]byte) {
 	}
 }
 
-func miniInput(cmd [3]byte) {
+func miniInput(cmd uiKey) {
 	switch cmd {
 	case keyA:
 	case keyAs:

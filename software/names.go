@@ -513,6 +513,16 @@ var names = map[string][]string{
 		3: "AU",
 		4: "JP",
 	},
+	"serviceAllKeyResult": {
+		"OK",
+		"FAIL",
+	},
+	"touchSelectModel": {
+		0: "K-15e",   // k-15e
+		1: "K-200",   // k-200
+		2: "K-3/400", // k-300, 400
+		3: "K-5/800", // k-500, 600, 700, 800
+	},
 }
 
 func init() {
@@ -620,7 +630,7 @@ var serviceNames = map[string]string{
 	"sm6UsbBluetooth":            "USB BT",      // service mode 06, USB device, bluetooth audio
 	"sm7MaxTouch":                "MAX.TOUCH",   // service mode 07, max touch
 	"sm8ToneCheck":               "TONE CHK",    // service mode 08, tone check
-	"sm9KeyboardS1S2S3AdRaw":     "KEYS+A/D", // service mode 09, keyboard S1, S2, S3; AD raw value
+	"sm9KeyboardS1S2S3AdRaw":     "KEYS+A/D",    // service mode 09, keyboard S1, S2, S3; AD raw value
 	"sm10WaveChecksum":           "WAVE.CHKS",   // service mode 10, wave checksum
 	"sm11AllKeyOn":               "ALL.KEY.ON",  // service mode 11, all key on
 	"sm12KeyAdjust":              "KEY.ADJST",   // service mode 12, key adjust

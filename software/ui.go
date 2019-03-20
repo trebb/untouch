@@ -818,7 +818,7 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srPdV}: func(m msg) { observeServiceMode1(m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTgA}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srUBt}: func(m msg) { observeServiceMode6(m[7], m[9:]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTCk}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTCk}: func(m msg) { notify(string(m[9:9+m[8]]), 0, 3*time.Second) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKRw}: func(m msg) { observeServiceMode9(m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srWCk}: func(m msg) {
 		switch m[7] {
@@ -830,9 +830,15 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown wave checksum msg")
 		}
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srAlK}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKAd}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srAlK}: func(m msg) {
+		notify(name("serviceAllKeyResult", m[9]), 0, 3*time.Second)
+	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKAd}: func(m msg) {
+		notify(fmt.Sprintf("K.%d %d", m[9], m[10]), 0, 3*time.Second)
+	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) {
+		notify(name("touchSelectModel", m[9]), 0, 5*time.Second)
+	},
 	// 55    AA    00    6E    01    61
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roNam}: func(m msg) { keepMbState("romName", string(m[9:9+m[8]])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roVer}: func(m msg) { keepMbState("romVersion", string(m[9:9+m[8]])) },
@@ -840,16 +846,10 @@ var actions = map[msg]func(msg){
 		keepMbState("romChecksum", fmt.Sprintf("%X%X", m[9], m[10]))
 	},
 	// 55    AA    00    6E    01    63
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muUOk}: func(m msg) {
-		notify(serviceNames["updateOk"], 0, 5*time.Hour)
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muUOk}: func(m msg) { notify(serviceNames["updateOk"], 0, 5*time.Hour) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muNam}: func(m msg) { notify(string(m[9:9+m[8]]), 1, 3*time.Second) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muCnt}: func(m msg) {
-		notify(fmt.Sprintf("%X", m[9:12]), -1, 5*time.Second)
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muDne}: func(m msg) {
-		notify(serviceNames["updateDone"], 0, 5*time.Second)
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muCnt}: func(m msg) { notify(fmt.Sprintf("%X", m[9:12]), -1, 5*time.Second) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muDne}: func(m msg) { notify(serviceNames["updateDone"], 0, 5*time.Second) },
 	// 55    AA    00    6E    01    64
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, uiUpd, upErr}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    65
@@ -921,23 +921,13 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    7F
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coSvc}: func(m msg) {
-		keepMbState("serviceMode", coSvc)
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coVer}: func(m msg) {
-		keepMbState("serviceMode", coVer)
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coMUd}: func(m msg) {
-		keepMbState("serviceMode", coVer)
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coUUd}: func(m msg) {
-		keepMbState("serviceMode", coVer)
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coSvc}: func(m msg) { keepMbState("serviceMode", coSvc) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coVer}: func(m msg) { keepMbState("serviceMode", coVer) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coMUd}: func(m msg) { keepMbState("serviceMode", coMUd) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, commu, coUUd}: func(m msg) { keepMbState("serviceMode", coUUd) },
 	// 55    AA    00    71    01
 	// 55    AA    00    71    01    10
-	{hdr0, hdr1, hdr2, mbCAc, 0x01, mainF, mFact}: func(m msg) {
-		fmt.Println("Ok, factory reset")
-	},
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, mainF, mFact}: func(m msg) { fmt.Println("Ok, factory reset") },
 	// 55    AA    00    71    01    14
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fUsCf}: func(m msg) {
 		fmt.Println("done: load from USB")
@@ -1160,9 +1150,7 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    72    01    32
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, msg32, 0x02}: func(m msg) { notImpl(m) },
 	// 55    AA    00    72    01    70
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, hardw, hwKey}: func(m msg) {
-		pnoKeys <- int8(m[9])
-	},
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, hardw, hwKey}: func(m msg) { pnoKeys <- int8(m[9]) },
 	// 55    AA    00    72    01    71
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, playr, 0x07}: func(m msg) { notImpl(m) },
 }
