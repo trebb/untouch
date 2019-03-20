@@ -266,7 +266,7 @@ var names = map[string][]string{
 		"WALTZ",    // Waltz
 		"RAGTIME",  // Ragtime
 		"MARCH",    // March
-		"6/8 MRCH", // 6/8 March
+		109:        "6/8 MRCH", // 6/8 March
 	},
 	"ambienceType": {
 		"NATURAL",  // Natural

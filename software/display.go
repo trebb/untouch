@@ -77,8 +77,10 @@ func (d *display) write(txt string) {
 	for _, c := range []byte(txt) {
 		if c == '.' && i > 0 {
 			dots[i-1] = true
-		} else if i < 8 {
-			dotlessTxt[i] = c
+		} else {
+			if i < 8 {
+				dotlessTxt[i] = c
+			}
 			i++
 		}
 		if i > 8 {
@@ -127,7 +129,7 @@ func (d *display) spin(s spinPattern) {
 	}
 	d.d0.WriteReg(0, d.buf[:8])
 	d.d1.WriteReg(0, d.buf[8:])
-	d.spinState += 1
+	d.spinState++
 }
 
 func (d *display) breathe() {

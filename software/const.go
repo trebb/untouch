@@ -344,3 +344,128 @@ const ( // (commu, 0x7F) communication setup
 	coMUd byte = 0x03 // mainboard firmware update screen (power on 10 sec)
 	coUUd byte = 0x04 // UI update screen (power on + pedals 1, 2, 3)
 )
+
+var rhythmPatternMax = [...]int{ // number of beats
+	// time signature
+	0:  1, // 1/4
+	2,  // 2/4
+	3,  // 3/4
+	4,  // 4/4
+	5,  // 5/4
+	3,  // 3/8
+	6,  // 6/8
+	7,  // 7/8
+	9,  // 9/8
+	12, // 12/8
+	// 8 Beat
+	10: 4, // 8 Beat 1
+	4,  // 8 Beat 2
+	4,  // 8 Beat 3
+	4,  // Pop 1
+	4,  // Pop 2
+	4,  // Pop 3
+	4,  // Pop 4
+	4,  // Pop 5
+	4,  // Pop 6
+	4,  // Ride Beat 1
+	4,  // Ride Beat 2
+	4,  // Dance Pop 1
+	4,  // Country Pop
+	4,  // Smooth Beat
+	4,  // Rim Beat
+	// 8 Beat Rock
+	25: 4, // Modern Rock 1
+	4,  // Modern Rock 2
+	4,  // Modern Rock 3
+	4,  // Modern Rock 4
+	4,  // Pop Rock
+	4,  // Ride Rock
+	4,  // Jazz Rock
+	4,  // Surf Rock
+	// 16 Beat
+	33: 4, // 16 Beat
+	4,  // Indie Pop 1
+	4,  // Acid Jazz 1
+	4,  // Ride Beat 3
+	4,  // Dance Pop 2
+	4,  // Dance Pop 3
+	4,  // Dance Pop 4
+	4,  // Dance Pop 5
+	4,  // Dance Pop 6
+	4,  // Dance Pop 7
+	4,  // Dance Pop 8
+	4,  // Indie Pop 2
+	4,  // Cajun Rock
+	// 8 Beat Ballad
+	46: 4, // Pop Ballad 1
+	4,  // Pop Ballad 2
+	4,  // Pop Ballad 3
+	4,  // Rock Ballad 1
+	4,  // Rock Ballad 2
+	4,  // Slow Jam
+	4,  // 6/8 R&B Ballad
+	4,  // Triplet Ballad 1
+	4,  // Triplet Ballad 2
+	// 16 Beat Ballad
+	55: 4, // 16 Ballad 1
+	4,  // Dance Ballad 1
+	4,  // Dance Ballad 2
+	4,  // Dance Ballad 3
+	4,  // Electro Pop
+	4,  // 16 Ballad 2
+	4,  // Mod Pop Ballad
+	// 16 Beat Dance
+	62: 4, // Dance 1
+	4,  // Dance 2
+	4,  // Dance 3
+	4,  // Disco
+	4,  // Techno 1
+	4,  // Techno 2
+	// 16 Beat Swing
+	68: 4, // 16 Shuffle 1
+	4,  // 16 Shuffle 2
+	4,  // 16 Shuffle 3
+	4,  // Acid Jazz 2
+	4,  // Acid Jazz 3
+	4,  // New Jack Swing
+	4,  // Modern Dance
+	4,  // Indie Pop 3
+	// 8 Beat Swing
+	76: 4, // Swing Beat
+	4,  // Motown
+	4,  // Country 2 Beat
+	4,  // Boogie
+	// Triplet
+	80: 4, // 8 Shuffle 1
+	4,  // 8 Shuffle 2
+	4,  // 8 Shuffle 3
+	4,  // Dance Shuffle
+	4,  // Triplet 1
+	4,  // Triplet 2
+	4,  // Triplet Rock
+	4,  // Reggae
+	// Jazz
+	88: 4, // H.H. Swing
+	4,  // Ride Swing
+	4,  // Fast 4 Beat
+	4,  // Afro Cuban
+	4,  // Jazz Bossa
+	3,  // Jazz Waltz
+	5,  // 5/4 Swing
+	// Latin/Traditional
+	95:  4, // H.H. Bossa Nova
+	4,   // Ride Bossa Nova
+	4,   // Beguine
+	4,   // Rhumba
+	4,   // Cha Cha
+	4,   // Mambo
+	4,   // Samba
+	4,   // Sala
+	4,   // Merenge
+	4,   // Tango
+	4,   // Habanera
+	3,   // Waltz
+	4,   // Ragtime
+	4,   // March
+	109: 6, // 6/8 March
+}

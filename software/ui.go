@@ -733,15 +733,19 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mSign}: func(m msg) { keepMbState("rhythmPattern", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) { keepMbState("metronomeVolume", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mBeat}: func(m msg) {
-		metronomeBeatTotal += 1
+		metronomeBeatTotal++
 		p := 8
+		max := rhythmPatternMax[int(mbStateItem("rhythmPattern").(byte))]
+		if max > 8 {
+			max++ // puts dot beyond display border
+		}
 		if m[9] < 8 {
 			p = int(m[9]) + 1
 		}
-		if mbStateItem("rhythmPattern") == 0 { // 1/1
+		if mbStateItem("rhythmPattern") == byte(0) { // 1/1
 			notify(fmt.Sprintf("%*d", p+metronomeBeatTotal%2, m[9]+1), 0, 1500*time.Millisecond)
 		} else {
-			notify(fmt.Sprintf("%*d", p, m[9]+1), 0, 1500*time.Millisecond)
+			notify(fmt.Sprintf("%*d%*s", p, m[9]+1, max-int(m[9]), "."), 0, 1500*time.Millisecond)
 		}
 	},
 	// 55    AA    00    6E    01    0F

@@ -85,10 +85,10 @@ func serviceModeInput(cmd uiKey) {
 				k := <-controlKeys
 				switch k {
 				case keyR: // sound_number--
-					sound -= 1
+					sound--
 					issueCmd(servi, srTCk, 0x0, byte(0x0), sound)
 				case keyP: // sound_number++
-					sound += 1
+					sound++
 					issueCmd(servi, srTCk, 0x0, byte(0x0), sound)
 				case keyNil:
 					break Loop
@@ -278,11 +278,11 @@ func serviceModeInput(cmd uiKey) {
 				k := <-controlKeys
 				switch k {
 				case keyR: // sound_number--
-					sound -= 1
+					sound--
 					issueCmd(servi, srMTc, 0x1, sound)
 					notify(fmt.Sprintf("Sound.%3d", sound), 0, 5*time.Second)
 				case keyP: // sound_number++
-					sound += 1
+					sound++
 					issueCmd(servi, srMTc, 0x1, sound)
 					notify(fmt.Sprintf("Sound.%3d", sound), 0, 5*time.Second)
 				case keyNil:
@@ -528,9 +528,13 @@ func pianoModeInput(cmd uiKey) {
 			k2, ok2 := getPnoKey()
 			if ok2 && k2 >= 42 { // middle-D = begin of rhythmGroup k
 				pat := byte(int(k2) - 42 + rhythmGroupIndex[k-1])
-				notifyUnlock(name("rhythmPattern", pat), 0, 1500*time.Millisecond)
-				issueCmd(metro, mSign, 0x0, pat)
-				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
+				if pat <= 109 { // topmost rhythm pattern
+					notifyUnlock(name("rhythmPattern", pat), 0, 1500*time.Millisecond)
+					issueCmd(metro, mSign, 0x0, pat)
+					issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
+				} else {
+					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				}
 			} else {
 				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
 			}
