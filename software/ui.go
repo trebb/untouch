@@ -84,7 +84,7 @@ WaitForPianoMode:
 		}
 	}
 	if mode, ok := mbStateItemOk("serviceMode"); ok {
-		service(mode.(byte))
+		go service(mode.(byte))
 	} else { // normal playing mode
 	ConfirmPlayingMode:
 		for {
