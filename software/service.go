@@ -90,19 +90,17 @@ func observeServiceMode1Monitor() {
 			currentKey = 0
 			output = fmt.Sprintf("L-IN%3d", o.state[0])
 		case 5:
-			if currentKey != o.state[0] {
-				currentKey = o.state[0]
-				currentOffVelocity = 0
-			}
+			currentKey = o.state[0]
+			currentOffVelocity = 0
 			currentOnVelocity = o.state[1]
-			output = fmt.Sprintf("%2d.%3d.%3d", currentKey-20, currentOnVelocity, currentOffVelocity)
+			output = fmt.Sprintf("%2d.%3d.%3d.", currentKey-20, currentOnVelocity, currentOffVelocity)
 		case 6:
 			if currentKey != o.state[0] {
 				currentKey = o.state[0]
 				currentOnVelocity = 0
 			}
 			currentOffVelocity = o.state[1]
-			output = fmt.Sprintf("%2d.%3d.%3d", currentKey-20, currentOnVelocity, currentOffVelocity)
+			output = fmt.Sprintf("%2d.%3d.%3d.", currentKey-20, currentOnVelocity, currentOffVelocity)
 		}
 		notify(output, 0, 5*time.Minute)
 	}
@@ -146,7 +144,7 @@ func observeServiceMode9Monitor() {
 			} else {
 				currentKeySwitchState[o.device] = fmt.Sprintf("s%d", o.device+1)
 			}
-			output = fmt.Sprintf("%2d.%2s.%2s.%2s", currentKey-20, currentKeySwitchState[0], currentKeySwitchState[1], currentKeySwitchState[2])
+			output = fmt.Sprintf("%2d.%2s.%2s.%2s.", currentKey-20, currentKeySwitchState[0], currentKeySwitchState[1], currentKeySwitchState[2])
 		case 3:
 			currentKey = 0
 			output = fmt.Sprintf("Ped3 %3d", o.state[0])

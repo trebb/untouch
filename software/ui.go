@@ -820,7 +820,7 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, biSng, 0x40}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    60
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srPdV}: func(m msg) { observeServiceMode1(m[7], m[9:]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTgA}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTgA}: func(m msg) { notify(name("instrumentSound", m[9]), 0, 12*time.Second) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srUBt}: func(m msg) { observeServiceMode6(m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTCk}: func(m msg) { notify(string(m[9:9+m[8]]), 0, 3*time.Second) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKRw}: func(m msg) { observeServiceMode9(m[7], m[9:]) },

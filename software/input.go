@@ -195,10 +195,10 @@ func serviceModeInput(cmd uiKey) {
 					issueCmd(servi, srEqL, 0x2, byte(0x0))
 					notify("4 ON", 0, 5*time.Second)
 				case keyP:
-					issueCmd(servi, srEqL, 0x9, byte(0x0))
+					issueCmd(servi, srEqL, 0x9, byte(0x1))
 					notify("PLAY", 0, 5*time.Second)
 				case keyPs:
-					issueCmd(servi, srEqL, 0x9, byte(0x1))
+					issueCmd(servi, srEqL, 0x9, byte(0x0))
 					notify("MUTE", 0, 5*time.Second)
 				case keyR:
 					issueCmd(servi, srEqL, 0x8, byte(0x1))
@@ -224,15 +224,19 @@ func serviceModeInput(cmd uiKey) {
 				case keyM:
 					model = byte(0x0)
 					issueCmd(servi, srTcS, 0x0, model)
+					notify(name("touchSelectModel", model), 0, 5*time.Second)
 				case keyMs:
 					model = byte(0x1)
 					issueCmd(servi, srTcS, 0x0, model)
+					notify(name("touchSelectModel", model), 0, 5*time.Second)
 				case keyMa:
 					model = byte(0x2)
 					issueCmd(servi, srTcS, 0x0, model)
+					notify(name("touchSelectModel", model), 0, 5*time.Second)
 				case keyMsa:
 					model = byte(0x3)
 					issueCmd(servi, srTcS, 0x0, model)
+					notify(name("touchSelectModel", model), 0, 5*time.Second)
 				case keyP:
 					issueCmd(servi, srTcS, 0x10, model)
 					notify("SAVED", 0, 5*time.Second)
@@ -311,7 +315,7 @@ func serviceModeInput(cmd uiKey) {
 				case keyP:
 					issueCmd(servi, srWCk, 0x0, byte(0))
 					closeSmControlKeys()
-					notify("cancelled", 0, 1500*time.Millisecond)
+					notify(errorName("cancelled"), 0, 1500*time.Millisecond)
 					break Loop
 				case keyNil:
 					break Loop
@@ -350,11 +354,17 @@ func smControlKeyMonitor() {
 			}
 			listener = l
 		case cmd := <-smControlKeys:
-			if listener != nil {
+			if listener == nil {
+				log.Printf("Ctl[%X %X %X] ", cmd[0], cmd[1], cmd[2])
+			} else {
 				listener <- cmd
 			}
 		}
 	}
+}
+
+func init() {
+	go smControlKeyMonitor()
 }
 
 func pianoModeInput(cmd uiKey) {
