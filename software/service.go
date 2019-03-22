@@ -39,9 +39,7 @@ func displayVersionScreenContent() {
 	}
 }
 
-func serviceScreen() {
-	notify(serviceNames["serviceMode"], 0, 1500*time.Millisecond)
-}
+func serviceScreen() { notify(serviceNames["serviceMode"], 0, 1500*time.Millisecond) }
 
 type serviceModeObservation struct {
 	device byte

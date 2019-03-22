@@ -340,9 +340,7 @@ func openSmControlKeys() <-chan uiKey {
 	return c
 }
 
-func closeSmControlKeys() {
-	newSmControlKeyListener <- nil
-}
+func closeSmControlKeys() { newSmControlKeyListener <- nil }
 
 func smControlKeyMonitor() {
 	var listener chan<- uiKey
@@ -363,9 +361,7 @@ func smControlKeyMonitor() {
 	}
 }
 
-func init() {
-	go smControlKeyMonitor()
-}
+func init() { go smControlKeyMonitor() }
 
 func pianoModeInput(cmd uiKey) {
 	switch cmd {

@@ -886,9 +886,7 @@ func virtualTechnician() {
 	}
 }
 
-func hi() {
-	issueCmdAc(commu, commu, 0x0, byte(0x0))
-}
+func hi() { issueCmdAc(commu, commu, 0x0, byte(0x0)) }
 
 func setLocalDefaults() {
 	issueCmd(regst, rgLoa, 0x0, byte(0)) // registration 0 serves as startup configuration

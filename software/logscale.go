@@ -4,9 +4,7 @@ import (
 	"math"
 )
 
-func round(f float64) int {
-	return int(math.Floor(f + .5))
-}
+func round(f float64) int { return int(math.Floor(f + .5)) }
 
 func scaleVal(start, end int, steps, step int8) int {
 	s := float64(start) - 1 + 2
