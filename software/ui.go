@@ -8,6 +8,7 @@ import (
 	"github.com/tarm/serial"
 	"log"
 	"os"
+	"sort"
 	"time"
 )
 
@@ -331,69 +332,106 @@ func name(tableKey string, i interface{}) string {
 	}
 }
 
-var notifyC = make(chan notification)
-var notifyLockC = make(chan string)
-var notifyUnlockC = make(chan notification)
+var (
+	notifyC       = make(chan notification, 1)
+	notifyLockC   = make(chan string)
+	notifyUnlockC = make(chan notification)
+)
 
 type notification struct {
 	s          string
 	precedence int
-	expiry     time.Time
+	born       time.Time
+	ttl        time.Duration
 }
 
-func notify(s string, precedence int, ttl time.Duration) {
-	notifyC <- notification{s, precedence, time.Now().Add(ttl)}
+type notifications []notification
+
+func (n notifications) Len() int { return len(n) }
+
+func (n notifications) Less(i, j int) bool {
+	switch {
+	case n[i].precedence > n[j].precedence: // higher precedence first
+		return true
+	case n[i].precedence < n[j].precedence:
+		return false
+	default:
+		return n[j].born.Before(n[i].born) // youngest first
+	}
 }
 
-func notifyLock(s string) {
-	notifyLockC <- s
-}
-
-func notifyUnlock(s string, precedence int, ttl time.Duration) {
-	notifyUnlockC <- notification{s, precedence, time.Now().Add(ttl)}
-}
+func (n notifications) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
 func notifyCMonitor() {
-	var nStack []notification
-	var nActive notification
+	var nList notifications
+	t := time.NewTimer(0)
+	<-t.C
 	locked := false
-
 	for {
 		select {
 		case s := <-notifyLockC:
 			locked = true
+			t.Stop()
+			select {
+			case <-t.C:
+			default:
+			}
 			seg14.w <- s
 		case n := <-notifyUnlockC:
 			locked = false
-			nStack = append(nStack, n) // push
+			notifyC <- n
 		case n := <-notifyC:
 			if !locked {
-				nStack = append(nStack, n) // push
-			}
-		default:
-			if !locked {
-				if len(nStack) >= 1 {
-					nTop := nStack[len(nStack)-1]
-					if nTop.expiry.Before(time.Now()) {
-						nStack = nStack[:len(nStack)-1] // pop & discard nTop
-					} else if nActive.precedence <= nTop.precedence {
-						nActive.precedence = nActive.precedence - 1
-						nStack[len(nStack)-1] = nActive // pop nTop, push nActive
-						nActive = nTop
-						seg14.w <- nActive.s
+				nList = append(nList, n)
+				sort.Sort(nList)
+				if nList[0] == n {
+					t.Stop()
+					select {
+					case <-t.C:
+					default:
 					}
+					seg14.w <- n.s
+					t.Reset(n.ttl)
 				}
-				if nActive.expiry.Before(time.Now()) {
-					seg14.w <- ""
+				nListMaxLen := 5
+				if len(nList) > nListMaxLen {
+					nList = nList[:nListMaxLen]
 				}
 			}
-			time.Sleep(10 * time.Millisecond)
+		case <-t.C:
+		PopNList:
+			for {
+				switch len(nList) {
+				case 0:
+					log.Print("impossible situation")
+					break PopNList
+				case 1:
+					seg14.w <- ""
+					nList = []notification{}
+					break PopNList
+				default:
+					if time.Since(nList[0].born) < nList[0].ttl {
+						seg14.w <- nList[0].s
+						t.Reset(nList[0].ttl)
+						break PopNList
+					}
+					nList = nList[1:]
+				}
+			}
 		}
 	}
 }
 
-func init() {
-	go notifyCMonitor()
+func init() { go notifyCMonitor() }
+
+func notify(s string, precedence int, ttl time.Duration) {
+	notifyC <- notification{s, precedence, time.Now(), ttl}
+}
+
+func notifyLock(s string) { notifyLockC <- s }
+
+func notifyUnlock(s string, precedence int, ttl time.Duration) {
+	notifyUnlockC <- notification{s, precedence, time.Now(), ttl}
 }
 
 type mbStateUpdateItem struct {
@@ -429,9 +467,7 @@ func mbStateMonitor() {
 	}
 }
 
-func init() {
-	go mbStateMonitor()
-}
+func init() { go mbStateMonitor() }
 
 func mbStateItemOk(key string) (x interface{}, ok bool) {
 	var r = make(chan mbStateQueryResult)
@@ -479,13 +515,9 @@ func pianistSongsItem(i int) pianistSong {
 	return s
 }
 
-func keepPianistSongsData(n int, d bool) {
-	pianistSongData <- songsBool{n, d}
-}
+func keepPianistSongsData(n int, d bool) { pianistSongData <- songsBool{n, d} }
 
-func keepPianistSongsSeen(n int, d bool) {
-	pianistSongSeen <- songsBool{n, d}
-}
+func keepPianistSongsSeen(n int, d bool) { pianistSongSeen <- songsBool{n, d} }
 
 type (
 	songsBool struct {
@@ -530,21 +562,13 @@ func soundSongsItem(i int) soundSong {
 	return s
 }
 
-func keepSoundSongsData(n int, d bool) {
-	soundSongData <- songsBool{n, d}
-}
+func keepSoundSongsData(n int, d bool) { soundSongData <- songsBool{n, d} }
 
-func keepSoundSongsSeen(n int, d bool) {
-	soundSongSeen <- songsBool{n, d}
-}
+func keepSoundSongsSeen(n int, d bool) { soundSongSeen <- songsBool{n, d} }
 
-func keepSoundSongsPart1(n int, d bool) {
-	soundSongPart1 <- songsBool{n, d}
-}
+func keepSoundSongsPart1(n int, d bool) { soundSongPart1 <- songsBool{n, d} }
 
-func keepSoundSongsPart2(n int, d bool) {
-	soundSongPart2 <- songsBool{n, d}
-}
+func keepSoundSongsPart2(n int, d bool) { soundSongPart2 <- songsBool{n, d} }
 
 func pianistSongsMonitor() {
 	var songs [10]pianistSong
@@ -664,9 +688,7 @@ var (
 	tapDuration = make(chan time.Duration)
 )
 
-func tapTempo() {
-	tapTempoTap <- struct{}{}
-}
+func tapTempo() { tapTempoTap <- struct{}{} }
 
 func tapTimeMonitor() {
 	var lastTime = time.Now()
