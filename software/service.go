@@ -26,20 +26,20 @@ func displayVersionScreenContent() {
 	for {
 		notify(serviceNames["mbFirmwareVersionMode"], 0, 3*time.Second)
 		time.Sleep(3 * time.Second)
-		notify(fmt.Sprint(mbStateItem("romName")), 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
-		notify(fmt.Sprint(mbStateItem("romVersion")), 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
-		notify(name("pianoModel", mbStateItem("pianoModel")), 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
-		notify(name("marketDestination", mbStateItem("marketDestination")), 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
-		notify(fmt.Sprint(mbStateItem("romChecksum")), 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
+		notify(fmt.Sprint(mbStateItem("romName")), 0, 2*time.Second)
+		time.Sleep(2*time.Second)
+		notify(fmt.Sprint(mbStateItem("romVersion")), 0, 2*time.Second)
+		time.Sleep(2*time.Second)
+		notify(name("pianoModel", mbStateItem("pianoModel")), 0, 2*time.Second)
+		time.Sleep(2*time.Second)
+		notify(name("marketDestination", mbStateItem("marketDestination")), 0, 2*time.Second)
+		time.Sleep(2*time.Second)
+		notify(fmt.Sprint(mbStateItem("romChecksum")), 0, 2*time.Second)
+		time.Sleep(2*time.Second)
 	}
 }
 
-func serviceScreen() { notify(serviceNames["serviceMode"], 0, 1500*time.Millisecond) }
+func serviceScreen() { notify(serviceNames["serviceMode"], -1, 10*time.Second) }
 
 type serviceModeObservation struct {
 	device byte

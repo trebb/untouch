@@ -765,9 +765,9 @@ var actions = map[msg]func(msg){
 			p = int(m[9]) + 1
 		}
 		if mbStateItem("rhythmPattern") == byte(0) { // 1/1
-			notify(fmt.Sprintf("%*d", p+metronomeBeatTotal%2, m[9]+1), 0, 1500*time.Millisecond)
+			notify(fmt.Sprintf("%*d", p+metronomeBeatTotal%2, m[9]+1), -1, 1500*time.Millisecond)
 		} else {
-			notify(fmt.Sprintf("%*d%*s", p, m[9]+1, max-int(m[9]), "."), 0, 1500*time.Millisecond)
+			notify(fmt.Sprintf("%*d%*s", p, m[9]+1, max-int(m[9]), "."), -1, 1500*time.Millisecond)
 		}
 	},
 	// 55    AA    00    6E    01    0F
@@ -793,15 +793,9 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    6E    01    14
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fPgrs}: func(m msg) { notify(fmt.Sprintf("FMT %3d", m[9]), 0, 1500*time.Millisecond) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fUsbE}: func(m msg) { notify(errors["usbError"], 0, 1500*time.Millisecond) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvNm}: func(m msg) {
-		fmt.Printf("rename done: USB filename(%d)=%s\n", m[7], m[9:])
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fRmNm}: func(m msg) {
-		fmt.Printf("delete: USB filename(%d)=%s\n", m[7], m[9:])
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvEx}: func(m msg) {
-		fmt.Printf("rename: USB filename(%d)=%s\n", m[7], m[9:])
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvNm}: func(m msg) { fmt.Printf("rename done: USB filename(%d)=%s\n", m[7], m[9:]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fRmNm}: func(m msg) { fmt.Printf("delete: USB filename(%d)=%s\n", m[7], m[9:]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fMvEx}: func(m msg) { fmt.Printf("rename: USB filename(%d)=%s\n", m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, files, fRmEx}: func(m msg) {
 		fmt.Printf("delete: USB filename extension(%d)=%d\n", m[7], m[9])
 	},
@@ -823,14 +817,10 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    6E    01    21
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmRec, pmSel}: func(m msg) {
-		fmt.Println("Pianist mode song", m[9])
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, pmRec, pmSel}: func(m msg) { fmt.Println("Pianist mode song", m[9]) },
 	// 55    AA    00    6E    01    22
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, 0x30}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, auPNm}: func(m msg) {
-		fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:])
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, 0x30}:  func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, auPNm}: func(m msg) { fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, auRec, auPEx}: func(m msg) {
 		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
 	},
@@ -856,26 +846,18 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown wave checksum msg")
 		}
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srAlK}: func(m msg) {
-		notify(name("serviceAllKeyResult", m[9]), 0, 3*time.Second)
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKAd}: func(m msg) {
-		notify(fmt.Sprintf("K.%d %d", m[9], m[10]), 0, 3*time.Second)
-	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) {
-		notify(name("touchSelectModel", m[9]), 0, 5*time.Second)
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srAlK}: func(m msg) { notify(name("serviceAllKeyResult", m[9]), 0, 3*time.Second) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srKAd}: func(m msg) { notify(fmt.Sprintf("K.%d %d", m[9], m[10]), 0, 3*time.Second) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, servi, srTcS}: func(m msg) { notify(name("touchSelectModel", m[9]), 0, 5*time.Second) },
 	// 55    AA    00    6E    01    61
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roNam}: func(m msg) { keepMbState("romName", string(m[9:9+m[8]])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roVer}: func(m msg) { keepMbState("romVersion", string(m[9:9+m[8]])) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) {
-		keepMbState("romChecksum", fmt.Sprintf("%X%X", m[9], m[10]))
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, romId, roCkS}: func(m msg) { keepMbState("romChecksum", fmt.Sprintf("%X%X", m[9], m[10])) },
 	// 55    AA    00    6E    01    63
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muUOk}: func(m msg) { notify(serviceNames["updateOk"], 0, 5*time.Hour) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muUOk}: func(m msg) { notify(serviceNames["updateOk"], 2, 5*time.Hour) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muNam}: func(m msg) { notify(string(m[9:9+m[8]]), 1, 3*time.Second) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muCnt}: func(m msg) { notify(fmt.Sprintf("%X", m[9:12]), -1, 5*time.Second) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muDne}: func(m msg) { notify(serviceNames["updateDone"], 0, 5*time.Second) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, mbUpd, muDne}: func(m msg) { notify(serviceNames["updateDone"], 3, 5*time.Second) },
 	// 55    AA    00    6E    01    64
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, uiUpd, upErr}: func(m msg) { notImpl(m) },
 	// 55    AA    00    6E    01    65
@@ -911,9 +893,7 @@ var actions = map[msg]func(msg){
 		}
 		fmt.Println("bar count", msgInt16(m[9:11]))
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plBea}: func(m msg) {
-		fmt.Println("beat", m[9], msgInt16(m[10:12]))
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plBea}: func(m msg) { fmt.Println("beat", m[9], msgInt16(m[10:12])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_08}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, pl_09}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plRec}: func(m msg) {
@@ -921,9 +901,7 @@ var actions = map[msg]func(msg){
 		fmt.Println("PLAYR:PLREC")
 	},
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plSto}: func(m msg) { storeCurrentRecorderState <- idle },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plA_B}: func(m msg) {
-		fmt.Println("A-B repeat mode", m[9])
-	},
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, playr, plA_B}: func(m msg) { fmt.Println("A-B repeat mode", m[9]) },
 	// 55    AA    00    6E    01    7E
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, pFace, 0x00}: func(m msg) {
 		switch m[7] {
@@ -955,12 +933,8 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    71    01    10
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, mainF, mFact}: func(m msg) { fmt.Println("Ok, factory reset") },
 	// 55    AA    00    71    01    14
-	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fUsCf}: func(m msg) {
-		fmt.Println("done: load from USB")
-	},
-	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fSvKs}: func(m msg) {
-		fmt.Printf("save .KSO to USB: confirming filename=%s\n", m[9:])
-	},
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fUsCf}: func(m msg) { fmt.Println("done: load from USB") },
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fSvKs}: func(m msg) { fmt.Printf("save .KSO to USB: confirming filename=%s\n", m[9:]) },
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fSvSm}: func(m msg) {
 		switch m[7] {
 		case 0xFF:
@@ -985,9 +959,7 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown delete USB file stuff")
 		}
 	},
-	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fFmat}: func(m msg) {
-		fmt.Println("USB format done")
-	},
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, files, fFmat}: func(m msg) { fmt.Println("USB format done") },
 	// 55    AA    00    71    01    20
 	{hdr0, hdr1, hdr2, mbCAc, 0x01, smRec, smEra}: func(m msg) { notImpl(m) },
 	// 55    AA    00    71    01    21
@@ -1119,28 +1091,14 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miLoc}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miTrP}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMul}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMut}: func(m msg) {
-		fmt.Println("MIDI channel", m[7], name("mutedness", int(m[9])))
-	},
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMut}: func(m msg) { fmt.Println("MIDI channel", m[7], name("mutedness", int(m[9]))) },
 	// 55    AA    00    72    01    14
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsNm}: func(m msg) {
-		fmt.Printf("load from USB filename(%d)=%s\n", m[7], m[9:])
-	},
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fMvNm}: func(m msg) {
-		fmt.Printf("rename: USB filename(%d)=%s\n", m[7], m[9:])
-	},
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fRmNm}: func(m msg) {
-		fmt.Printf("delete: USB filename(%d)=%s\n", m[7], m[9:])
-	},
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsEx}: func(m msg) {
-		fmt.Printf("load from USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
-	},
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fMvEx}: func(m msg) {
-		fmt.Printf("rename: USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
-	},
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fRmEx}: func(m msg) {
-		fmt.Printf("delete: USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
-	},
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsNm}: func(m msg) { fmt.Printf("load from USB filename(%d)=%s\n", m[7], m[9:]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fMvNm}: func(m msg) { fmt.Printf("rename: USB filename(%d)=%s\n", m[7], m[9:]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fRmNm}: func(m msg) { fmt.Printf("delete: USB filename(%d)=%s\n", m[7], m[9:]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsEx}: func(m msg) { fmt.Printf("load from USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9]))) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fMvEx}: func(m msg) { fmt.Printf("rename: USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9]))) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fRmEx}: func(m msg) { fmt.Printf("delete: USB filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9]))) },
 	// 55    AA    00    72    01    16
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAud}: func(m msg) { keepMbState("bluetoothAudio", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, bluet, btAuV}: func(m msg) { keepMbState("bluetoothAudioVolume", int8(m[9])) },
@@ -1167,12 +1125,8 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auTyp}: func(m msg) { keepMbState("usbPlayerFileType", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auGai}: func(m msg) { keepMbState("usbPlayerGainLevel", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, au_30}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPNm}: func(m msg) {
-		fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:])
-	},
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPEx}: func(m msg) {
-		fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9])))
-	},
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPNm}: func(m msg) { fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPEx}: func(m msg) { fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9]))) },
 	// 55    AA    00    72    01    32
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, msg32, 0x02}: func(m msg) { notImpl(m) },
 	// 55    AA    00    72    01    70

@@ -320,7 +320,7 @@ func eraseSongParts() {
 			issueCmdAc(smRec, smEra, mbStateItem("currentSoundSong").(byte), mbStateItem("currentSoundSongPartSet"))
 		}
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -336,7 +336,7 @@ func loadRegistration() {
 		)
 		issueCmd(regst, rgOpn, 0x0, byte(0x1)) // trigger msg with the new currentRegistration
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -348,7 +348,7 @@ func storeRegistration() {
 		// issueCmd(regst, rgNam, k-1, textarg2)
 		issueCmd(regst, rgSto, 0x0, k-1)
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -359,7 +359,7 @@ func storeToSound() {
 		notifyUnlock("DONE", 0, 1500*time.Millisecond)
 		issueCmd(vTech, toSnd, 0x0, byte(0x21))
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -371,7 +371,7 @@ func immediateAction(id string, cmd byte, subCmd byte, expectedKey int8) {
 		notifyUnlock(name(id, kMiD), 0, 1500*time.Millisecond)
 		issueCmd(cmd, subCmd, 0x0, byte(0x0))
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -400,13 +400,13 @@ func immediateActions() {
 				issueCmdAc(pmRec, pmEra, 0xFF)
 				issueCmdAc(smRec, smEra, 0xFF, byte(0x2))
 			} else {
-				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 			}
 		default:
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -477,7 +477,7 @@ func inputSettingsValue(id string, cmd byte, subCmd byte, lowerBound int8, upper
 		issueCmd(cmd, subCmd, 0x0, byte(0x0), kMiD)
 		issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -504,10 +504,10 @@ func inputKeySpecificSettingsValue(id string, cmd byte, subCmd byte, lowerBound 
 			notifyUnlock(fmt.Sprintf("%d %d", k-1, int8(kMiD)), 0, 1500*time.Millisecond) // TODO: translate k into note name
 			issueCmd(cmd, subCmd, byte(k-1), kMiD)
 		} else {
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	} else {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -520,7 +520,7 @@ func settings() {
 	notifyLock("SETTINGS")
 	k, ok := getPnoKey()
 	if !ok {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		return
 	}
 	switch k {
@@ -634,7 +634,7 @@ func settings() {
 					issueCmd(spSet, spSpP, 0, k+20)
 					notifyUnlock(fmt.Sprintf("KEY %d", k), 0, 1500*time.Millisecond)
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			case kbSpM4hands:
 				notifyLock("SPLIT PT")
@@ -643,7 +643,7 @@ func settings() {
 					issueCmd(h4Set, h4SpP, 0, k+20)
 					notifyUnlock((fmt.Sprintf("KEY %d", k)), 0, 1500*time.Millisecond)
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			}
 		}
@@ -666,7 +666,7 @@ func settings() {
 				issueCmd(mainF, mTung, 0x0, byte(0x0), kMiD)
 				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 			} else {
-				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 			}
 		}
 	case blkKey[14]:
@@ -695,7 +695,7 @@ func settings() {
 			issueCmd(mainF, mLinV, 0x0, byte(0x0), kMiD)
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 		} else {
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	case blkKey[18]:
 		inputSettingsValue("wallEq", mainF, mWall, 0, 1)
@@ -725,7 +725,7 @@ func settings() {
 			issueCmd(bluet, btAud, 0x0, byte(0x0), kMiD)
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
 		} else {
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	case blkKey[25]:
 		inputSettingsValue("midiChannel", midiI, miCha, 0, 15)
@@ -767,12 +767,12 @@ func settings() {
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 			time.Sleep(time.Second)
 		} else {
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	case blkKey[35]:
 		inputSettingsValue("usbPlayerTranspose", auRec, auTrn, -12, 12)
 	default:
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 
@@ -780,7 +780,7 @@ func virtualTechnician() {
 	notifyLock("V TECHN")
 	k, ok := getPnoKey()
 	if !ok {
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		return
 	}
 	switch k {
@@ -882,7 +882,7 @@ func virtualTechnician() {
 	case blkKey[24]:
 		inputSettingsValue("softPedalDepth", vTech, sfPdl, 1, 10)
 	default:
-		notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 	}
 }
 

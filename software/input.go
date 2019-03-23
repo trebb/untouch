@@ -75,7 +75,7 @@ func serviceModeInput(cmd uiKey) {
 	switch cmd {
 	case keyA: // mode 8
 		issueCmd(servi, sMSel, 0x0, sMTCk)
-		notify(serviceNames["sm8ToneCheck"], 0, 3*time.Second)
+		notify(serviceNames["sm8ToneCheck"], 1, 3*time.Second)
 		go func() {
 			controlKeys := openSmControlKeys()
 			var sound uint8 = 0
@@ -97,7 +97,7 @@ func serviceModeInput(cmd uiKey) {
 		}()
 	case keyAs: // mode 3
 		issueCmd(servi, sMSel, 0x0, sMTgA)
-		notify(serviceNames["sm3TgAllChannel"], 0, 3*time.Second)
+		notify(serviceNames["sm3TgAllChannel"], 1, 3*time.Second)
 		go func() {
 			controlKeys := openSmControlKeys()
 		Loop:
@@ -117,11 +117,11 @@ func serviceModeInput(cmd uiKey) {
 		}()
 	case keyAa: // mode 12
 		issueCmd(servi, sMSel, 0x0, sMKAd)
-		notify(serviceNames["sm12KeyAdjust"], 0, 3*time.Second)
+		notify(serviceNames["sm12KeyAdjust"], 1, 3*time.Second)
 	case keyAsa:
 	case keyF: // mode 4
 		issueCmd(servi, sMSel, 0x0, sML_R)
-		notify(serviceNames["sm4L/R"], 0, 3*time.Second)
+		notify(serviceNames["sm4L/R"], 1, 3*time.Second)
 		go func() {
 			controlKeys := openSmControlKeys()
 		Loop:
@@ -142,7 +142,7 @@ func serviceModeInput(cmd uiKey) {
 			}
 		}()
 	case keyFs: // mode 2
-		notify(serviceNames["sm2EffectReverb"], 0, 3*time.Second)
+		notify(serviceNames["sm2EffectReverb"], 1, 3*time.Second)
 		issueCmd(servi, sMSel, 0x0, sMEfR)
 		go func() {
 			controlKeys := openSmControlKeys()
@@ -162,7 +162,7 @@ func serviceModeInput(cmd uiKey) {
 			}
 		}()
 	case keyFa: // mode 5
-		notify(serviceNames["sm5EqLevel"], 0, 3*time.Second)
+		notify(serviceNames["sm5EqLevel"], 1, 3*time.Second)
 		issueCmd(servi, sMSel, 0x0, sMEqL)
 		go func() {
 			controlKeys := openSmControlKeys()
@@ -213,7 +213,7 @@ func serviceModeInput(cmd uiKey) {
 		}()
 	case keyFsa: // mode 13
 		issueCmd(servi, sMSel, 0x0, sMTcS)
-		notify(serviceNames["sm13TouchSelect"], 0, 3*time.Second)
+		notify(serviceNames["sm13TouchSelect"], 1, 3*time.Second)
 		go func() {
 			var model byte
 			controlKeys := openSmControlKeys()
@@ -239,7 +239,7 @@ func serviceModeInput(cmd uiKey) {
 					notify(name("touchSelectModel", model), 0, 5*time.Second)
 				case keyP:
 					issueCmd(servi, srTcS, 0x10, model)
-					notify("SAVED", 0, 5*time.Second)
+					notify("SAVED", 10, 5*time.Second)
 				case keyNil:
 					break Loop
 				}
@@ -247,13 +247,13 @@ func serviceModeInput(cmd uiKey) {
 		}()
 	case keyK: // mode 9
 		issueCmd(servi, sMSel, 0x0, sMKRw)
-		notify(serviceNames["sm9KeyboardS1S2S3AdRaw"], 0, 3*time.Second)
+		notify(serviceNames["sm9KeyboardS1S2S3AdRaw"], 1, 3*time.Second)
 	case keyKs: // mode 1
 		issueCmd(servi, sMSel, 0x0, sMPdV)
-		notify(serviceNames["sm1PedalVolumeKeyboardMidi"], 0, 3*time.Second)
+		notify(serviceNames["sm1PedalVolumeKeyboardMidi"], 1, 3*time.Second)
 	case keyKa: // mode 11
 		issueCmd(servi, sMSel, 0x0, sMAlK)
-		notify(serviceNames["sm11AllKeyOn"], 0, 3*time.Second)
+		notify(serviceNames["sm11AllKeyOn"], 1, 3*time.Second)
 		go func() {
 			controlKeys := openSmControlKeys()
 		Loop:
@@ -271,7 +271,7 @@ func serviceModeInput(cmd uiKey) {
 		}()
 	case keyKsa: // mode 7
 		issueCmd(servi, sMSel, 0x0, sMMTc)
-		notify(serviceNames["sm7MaxTouch"], 0, 3*time.Second)
+		notify(serviceNames["sm7MaxTouch"], 1, 3*time.Second)
 		go func() {
 			controlKeys := openSmControlKeys()
 			var sound uint8 = 0
@@ -302,10 +302,10 @@ func serviceModeInput(cmd uiKey) {
 		issueCmd(servi, srUBt, 0x0, byte(0x0))
 	case keySa: // mode 14
 		issueCmd(servi, sMSel, 0x0, sMVer)
-		notify(buildDate, 0, 5*time.Second)
+		notify(buildDate, 1, 5*time.Second)
 	case keySsa: // mode 10
 		issueCmd(servi, sMSel, 0x0, sMWCk)
-		notify(serviceNames["sm10WaveChecksum"], 0, 3*time.Second)
+		notify(serviceNames["sm10WaveChecksum"], 1, 3*time.Second)
 		go func() {
 			controlKeys := openSmControlKeys()
 		Loop:
@@ -386,7 +386,7 @@ func pianoModeInput(cmd uiKey) {
 		k, ok := getPnoKey()
 		switch {
 		case !ok:
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		case k == 1: // pianist mode
 			notifyUnlock("PIANIST", 0, 1500*time.Millisecond)
 			keepMbState("toneGeneratorMode", tgPia)
@@ -398,7 +398,7 @@ func pianoModeInput(cmd uiKey) {
 			issueCmd(tgMod, tgMod, 0x0, tgSnd)
 			requestAllVTSettings()
 		default:
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	case keyKs: // aggregate sound: rendering of pianist mode or first/only sound of sound mode
 		switch mbStateItem("toneGeneratorMode") {
@@ -410,7 +410,7 @@ func pianoModeInput(cmd uiKey) {
 				issueCmd(pmSet, pmRen, 0x0, k-1)
 				issueCmd(tgMod, tgMod, 0x0, tgPia) // triggers confirmation of the changes
 			} else {
-				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 			}
 		case tgSnd:
 			switch mbStateItem("keyboardMode") {
@@ -423,7 +423,7 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(tgMod, tgMod, 0x0, tgSnd)
 					requestAllVTSettings()
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			case kbSpMDual:
 				notifyLock(name("instrumentSound", mbStateItem("dual1")))
@@ -434,7 +434,7 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(tgMod, tgMod, 0x0, tgSnd)
 					requestAllVTSettings()
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			case kbSpMSplit:
 				notifyLock(name("instrumentSound", mbStateItem("split1")))
@@ -445,7 +445,7 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(tgMod, tgMod, 0x0, tgSnd)
 					requestAllVTSettings()
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			case kbSpM4hands:
 				notifyLock(name("instrumentSound", mbStateItem("4hands1")))
@@ -456,7 +456,7 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(tgMod, tgMod, 0x0, tgSnd)
 					requestAllVTSettings()
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			default:
 				log.Print("bad keyboardMode")
@@ -481,7 +481,7 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(tgMod, tgMod, 0x0, tgSnd)
 					requestAllVTSettings()
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			case kbSpMSplit:
 				notifyLock(name("instrumentSound", mbStateItem("split2")))
@@ -492,7 +492,7 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(tgMod, tgMod, 0x0, tgSnd)
 					requestAllVTSettings()
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			case kbSpM4hands:
 				notifyLock(name("instrumentSound", mbStateItem("4hands2")))
@@ -503,7 +503,7 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(tgMod, tgMod, 0x0, tgSnd)
 					requestAllVTSettings()
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			default:
 				log.Print("bad keyboardMode")
@@ -524,7 +524,7 @@ func pianoModeInput(cmd uiKey) {
 			issueCmd(metro, mTmpo, 0x0, uint16(tempo))
 			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 		} else {
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	case keyMa:
 		notifyLock(name("rhythmPattern", mbStateItem("rhythmPattern")))
@@ -539,13 +539,13 @@ func pianoModeInput(cmd uiKey) {
 					issueCmd(metro, mSign, 0x0, pat)
 					issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 				} else {
-					notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+					notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 				}
 			} else {
-				notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 			}
 		} else {
-			notifyUnlock(errorName("cancelled"), 0, 1500*time.Millisecond)
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}
 	case keyMsa:
 		tapTempo()
