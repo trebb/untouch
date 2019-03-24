@@ -753,7 +753,7 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mOnOf}: func(m msg) { keepMbState("metronomeOnOff", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mTmpo}: func(m msg) { keepMbState("metronomeTempo", msgInt16(m[9:11])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mSign}: func(m msg) { keepMbState("rhythmPattern", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) { keepMbState("metronomeVolume", m[9]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) { keepMbState("metronomeVolume", m[9]-1) }, // -1 to compensate for a mainboard bug
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mBeat}: func(m msg) {
 		metronomeBeatTotal++
 		p := 8
