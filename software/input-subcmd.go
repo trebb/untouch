@@ -744,7 +744,7 @@ func settings() {
 	case blkKey[30]:
 		inputSettingsValue("autoPowerOff", mainF, mAOff, 0, 3)
 	case blkKey[31]:
-		inputSettingsValue("metronomeVolume", metro, mVolu, 0, 9)
+		inputSettingsValue("metronomeVolume", metro, mVolu, 0, 10)
 	case blkKey[32]:
 		inputSettingsValue("recorderGainLevel", auRec, auGai, 0, 15)
 	case blkKey[33]:
