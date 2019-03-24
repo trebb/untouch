@@ -39,7 +39,7 @@ func displayVersionScreenContent() {
 	}
 }
 
-func serviceScreen() { notify(serviceNames["serviceMode"], -1, 10*time.Second) }
+func serviceScreen() { notify(serviceNames["serviceMode"], 10, 3*time.Second) }
 
 type serviceModeObservation struct {
 	device byte
@@ -100,7 +100,7 @@ func observeServiceMode1Monitor() {
 			currentOffVelocity = o.state[1]
 			output = fmt.Sprintf("%2d.%3d.%3d.", currentKey-20, currentOnVelocity, currentOffVelocity)
 		}
-		notify(output, 0, 5*time.Minute)
+		notify(output, 0, 5*time.Second)
 	}
 }
 
@@ -119,7 +119,7 @@ func observeServiceMode6Monitor() {
 				output = fmt.Sprint("NOT IMPL")
 			}
 		}
-		notify(output, 0, 5*time.Minute)
+		notify(output, 0, 5*time.Second)
 	}
 }
 
@@ -159,7 +159,7 @@ func observeServiceMode9Monitor() {
 			currentKey = 0
 			output = fmt.Sprintf("L-IN %3d", o.state[0])
 		}
-		notify(output, 0, 5*time.Minute)
+		notify(output, 0, 5*time.Second)
 	}
 }
 
