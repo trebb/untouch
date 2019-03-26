@@ -6,8 +6,9 @@ BOARD_NAME="$(basename ${BOARD_DIR})"
 GENIMAGE_CFG="${BOARD_DIR}/genimage-${BOARD_NAME}.cfg"
 GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
 
-echo "cp board/novus/${BOARD_NAME}/config.txt ${BINARIES_DIR}/config.txt"
+echo "cp ${BOARD_DIR}/${BOARD_NAME}/config.txt ${BINARIES_DIR}/config.txt"
 cp ${BOARD_DIR}/config.txt ${BINARIES_DIR}/config.txt
+echo "cp ${BOARD_DIR}/${BOARD_NAME}/cmdline.txt ${BINARIES_DIR}/cmdline.txt"
 cp ${BOARD_DIR}/cmdline.txt ${BINARIES_DIR}/cmdline.txt
 
 for arg in "$@"

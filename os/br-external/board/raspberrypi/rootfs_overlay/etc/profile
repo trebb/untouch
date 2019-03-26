@@ -18,5 +18,3 @@ for i in /etc/profile.d/*.sh ; do
 	fi
 done
 unset i
-
-/root/ui -mb /dev/ttyAMA0
