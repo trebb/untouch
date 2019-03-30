@@ -28,38 +28,21 @@ Drain:
 			break Drain
 		}
 	}
-	issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
 	var key0, key1 int8
-Key0:
-	for {
-		select {
-		case key0 = <-pnoKeys: // key 1 (A0) yields 21
-			break Key0
-		default:
-			seg14.brth <- struct{}{}
-			time.Sleep(16 * time.Millisecond)
-		}
-	}
-	t0 := time.Now()
-	ok = true
 	issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
-Key1:
+	key0 = <-pnoKeys // key 1 (A0) yields 21
+	issueDtaRq(request{hardw, hwKey, 0x0, 0x1, 0x0})
+	key1Timeout := time.NewTimer(300 * time.Millisecond)
 	for {
 		select {
 		case key1 = <-pnoKeys: // key 1 (A0) yields 21
-			break Key1
-		default:
-			seg14.brth <- struct{}{}
-			time.Sleep(16 * time.Millisecond)
-			if time.Since(t0) > 300*time.Millisecond {
-				ok = false
-				break Key1
-			}
+			ok = key0 == key1
+			k = key0 - 20
+			return
+		case <-key1Timeout.C:
+			ok = false
+			return
 		}
 	}
-	if key0 != key1 {
-		ok = false
-	}
-	k = key0 - 20
-	return
+
 }

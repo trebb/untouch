@@ -512,8 +512,18 @@ func inputKeySpecificSettingsValue(id string, cmd byte, subCmd byte, lowerBound 
 }
 
 func scaledValue(i interface{}, zero int, step float64, unit string) string {
-	v := i.(int)
-	return fmt.Sprintf("%d %s", float64(zero)+float64(v)*step, unit)
+	var v float64
+	switch i.(type) {
+	case byte:
+		v = float64(i.(byte))
+	case int8:
+		v = float64(i.(int8))
+	case int16:
+		v = float64(i.(int16))
+	default:
+		return fmt.Sprint(i)
+	}
+	return fmt.Sprintf("%d %s", int(float64(zero)+v*step), unit)
 }
 
 func settings() {
@@ -705,7 +715,6 @@ func settings() {
 		inputSettingsValue("phonesType", hPhon, phTyp, 0, 5)
 	case blkKey[21]:
 		inputSettingsValue("phonesVolume", hPhon, phVol, 0, 1)
-
 	case blkKey[22]:
 		inputSettingsValue("bluetoothMidi", bluet, btMid, 0, 1)
 	case blkKey[23]:

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang.org/x/exp/io/i2c"
 	"log"
+	"time"
 )
 
 type display struct {
@@ -16,8 +17,8 @@ type display struct {
 	d0                *i2c.Device
 	d1                *i2c.Device
 	w                 chan string
-	brth              chan struct{}
-	spn               chan spinPattern
+	wBrth             chan string
+	pSpn              chan spinPattern
 }
 
 func openDisplay(addr0 int, addr1 int) (d display, err error) {
@@ -30,8 +31,8 @@ func openDisplay(addr0 int, addr1 int) (d display, err error) {
 		return
 	}
 	d.w = make(chan string)
-	d.brth = make(chan struct{})
-	d.spn = make(chan spinPattern)
+	d.wBrth = make(chan string)
+	d.pSpn = make(chan spinPattern)
 	d.d0 = d0
 	d.d1 = d1
 	d.d0.Write([]byte{0x21})
@@ -47,14 +48,59 @@ func (d *display) close() {
 }
 
 func (d *display) displayMonitor() {
+	tic := time.NewTicker(time.Second)
+	tic.Stop()
+	stop := make(chan struct{})
 	for {
 		select {
 		case s := <-d.w:
+			select {
+			case <-stop:
+			default:
+				close(stop)
+			}
+			d.dim(d.defaultBrightness)
 			d.write(s)
-		case <-d.brth:
-			d.breathe()
-		case p := <-d.spn:
-			d.spin(p)
+		case s := <-d.wBrth:
+			select {
+			case <-stop:
+			default:
+				close(stop)
+			}
+			stop = make(chan struct{})
+			tic = time.NewTicker(16 * time.Millisecond)
+			d.write(s)
+			go func() {
+				for {
+					select {
+					case <-tic.C:
+						d.breathe()
+					case <-stop:
+						tic.Stop()
+						return
+					}
+				}
+			}()
+		case p := <-d.pSpn:
+			select {
+			case <-stop:
+			default:
+				close(stop)
+			}
+			stop = make(chan struct{})
+			tic = time.NewTicker(40 * time.Millisecond)
+			go func() {
+				for {
+					select {
+					case <-tic.C:
+						d.spin(p)
+					case <-stop:
+						tic.Stop()
+						d.write("")
+						return
+					}
+				}
+			}()
 		}
 	}
 }
@@ -70,7 +116,6 @@ func init() {
 }
 
 func (d *display) write(txt string) {
-	d.dim(d.defaultBrightness)
 	var dotlessTxt [8]byte
 	var dots [8]bool
 	i := 0

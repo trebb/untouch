@@ -46,6 +46,7 @@ func main() {
 	go txd(*s)
 	go input()
 	keepMbState("mainboardSeen", false)
+	seg14.pSpn <- spinPattern{runningOutline, []int{7}}
 WaitForMainboard:
 	for !mbStateItem("mainboardSeen").(bool) {
 		select {
@@ -53,12 +54,11 @@ WaitForMainboard:
 			break WaitForMainboard
 		default:
 			hi()
-			for i := 0; i < 6; i++ {
-				seg14.spn <- spinPattern{runningOutline, []int{7}}
-				time.Sleep(50 * time.Millisecond)
-			}
+			time.Sleep(100 * time.Millisecond)
+			fmt.Print("M ")
 		}
 	}
+	seg14.pSpn <- spinPattern{runningPointer, []int{7}}
 WaitForPianoMode:
 	for {
 		select {
@@ -66,27 +66,22 @@ WaitForPianoMode:
 			break WaitForPianoMode
 		default:
 			if _, ok := mbStateItemOk("normalPianoMode"); ok {
-				notify("       *", 0, 1500*time.Millisecond)
 				break WaitForPianoMode
 			}
 			if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
-				notify("      **", 0, 1500*time.Millisecond)
 				break WaitForPianoMode
 			}
 			if _, ok := mbStateItemOk("serviceMode"); ok {
-				notify("    ****", 0, 1500*time.Millisecond)
 				break WaitForPianoMode
 			}
-			for i := 0; i < 6; i++ {
-				seg14.spn <- spinPattern{runningPointer, []int{7}}
-				time.Sleep(50 * time.Millisecond)
-			}
-			fmt.Print("x ")
+			time.Sleep(100 * time.Millisecond)
+			fmt.Print("P ")
 		}
 	}
 	if mode, ok := mbStateItemOk("serviceMode"); ok {
 		go service(mode.(byte))
 	} else { // normal playing mode
+		seg14.pSpn <- spinPattern{runningDoublePointer, []int{7}}
 	ConfirmPlayingMode:
 		for {
 			select {
@@ -94,10 +89,13 @@ WaitForPianoMode:
 				break ConfirmPlayingMode
 			default:
 				if _, ok := mbStateItemOk("toneGeneratorMode"); ok {
-					notify("     ***", 0, 1500*time.Millisecond)
+					notify("       *", 0, 1500*time.Millisecond)
 					break ConfirmPlayingMode
 				}
 			}
+			issueCmd(regst, rgLoa, 0x0, byte(0)) // trigger toneGeneratorMode
+			time.Sleep(100 * time.Millisecond)
+			fmt.Print("C ")
 		}
 		setLocalDefaults()
 	}
@@ -320,6 +318,11 @@ func name(tableKey string, i interface{}) string {
 			return names[tableKey][i]
 		}
 		return fmt.Sprint(i)
+	case int16:
+		if int(i) >= 0 && int(i) < len(names[tableKey]) {
+			return names[tableKey][i]
+		}
+		return fmt.Sprint(i)
 	case byte:
 		if int(i) >= 0 && int(i) < len(names[tableKey]) {
 			return names[tableKey][i]
@@ -376,7 +379,7 @@ func notifyCMonitor() {
 			case <-t.C:
 			default:
 			}
-			seg14.w <- s
+			seg14.wBrth <- s
 		case n := <-notifyUnlockC:
 			locked = false
 			notifyC <- n
@@ -490,19 +493,19 @@ func keepMbState(key string, payload interface{}) {
 	switch x := payload.(type) {
 	case byte:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
-		fmt.Println("NOTICED:", key, name(key, x))
+		fmt.Printf(" [MB(%s)=(byte)%v] ", key, name(key, x))
 	case int8:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
-		fmt.Println("NOTICED:", key, name(key, x))
+		fmt.Printf(" [MB(%s)=(int8)%v] ", key, name(key, x))
 	case int16:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
-		fmt.Println("NOTICED:", key, "=", x)
+		fmt.Printf(" [MB(%s)=(int16)%v] ", key, name(key, x))
 	case string:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
-		fmt.Println("NOTICED:", key, "=", x)
+		fmt.Printf(" [MB(%s)=(string)%v] ", key, name(key, x))
 	case bool:
 		mbStateUpdates <- mbStateUpdateItem{key, x}
-		fmt.Println("NOTICED:", key, "=", x)
+		fmt.Printf(" [MB(%s)=(bool)%v] ", key, name(key, x))
 	default:
 		log.Printf("can't keep (%T)%v as an mbStateItem for %s\n", payload, payload, key)
 	}

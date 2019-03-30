@@ -572,7 +572,11 @@ func pianoModeInput(cmd uiKey) {
 	case keyX2:
 	case keyX12:
 	case keyESC:
-		close(exit) // for debugging
+		select {
+		case <-exit:
+		default:
+			close(exit) // for debugging
+		}
 	default:
 		log.Printf("Pno[%X %X %X] ", cmd[0], cmd[1], cmd[2])
 	}
