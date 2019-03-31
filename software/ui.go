@@ -330,6 +330,8 @@ func name(tableKey string, i interface{}) string {
 		return fmt.Sprint(i)
 	case string:
 		return i
+	case bool:
+		return fmt.Sprint(i)
 	default:
 		return "FALLTHROUGH ERROR"
 	}
@@ -789,7 +791,10 @@ var actions = map[msg]func(msg){
 			notImpl(m, "unknown registration screen stuff")
 		}
 	},
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgLoa}: func(m msg) { keepMbState("currentRegistration", m[9]) },
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, regst, rgLoa}: func(m msg) {
+		keepMbState("currentRegistration", m[9])
+		requestInitialMbData()
+	},
 	// 55    AA    00    6E    01    10
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, mTran}: func(m msg) { keepMbState("transpose", int8(m[9])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, mainF, m__0B}: func(m msg) { notImpl(m) },
@@ -982,10 +987,7 @@ var actions = map[msg]func(msg){
 		}
 	},
 	// 55    AA    00    71    01    7F
-	{hdr0, hdr1, hdr2, mbCAc, 0x01, commu, commu}: func(m msg) {
-		keepMbState("mainboardSeen", true)
-		requestInitialMbData()
-	},
+	{hdr0, hdr1, hdr2, mbCAc, 0x01, commu, commu}: func(m msg) { keepMbState("mainboardSeen", true) },
 	// 55    AA    00    72    01
 	// 55    AA    00    72    01    04
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, pmSet, pmAmb}: func(m msg) { keepMbState("ambienceType", m[9]) },
@@ -1089,11 +1091,11 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, hPhon, phTyp}: func(m msg) { keepMbState("phonesType", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, hPhon, phVol}: func(m msg) { keepMbState("phonesVolume", m[9]) },
 	// 55    AA    00    72    01    13
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miCha}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miCha}: func(m msg) { keepMbState("midiChannel", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miPgC}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miLoc}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miTrP}: func(m msg) { notImpl(m) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMul}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miLoc}: func(m msg) { keepMbState("localControl", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miTrP}: func(m msg) { keepMbState("transmitPgmNumberOnOff", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMul}: func(m msg) { keepMbState("multiTimbralMode", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, midiI, miMut}: func(m msg) { fmt.Println("MIDI channel", m[7], name("mutedness", int(m[9]))) },
 	// 55    AA    00    72    01    14
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, files, fUsNm}: func(m msg) { fmt.Printf("load from USB filename(%d)=%s\n", m[7], m[9:]) },
@@ -1125,8 +1127,8 @@ var actions = map[msg]func(msg){
 	},
 	// 55    AA    00    72    01    22
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auTrn}: func(m msg) { keepMbState("usbPlayerTranspose", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auTyp}: func(m msg) { keepMbState("usbPlayerFileType", m[9]) },
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auGai}: func(m msg) { keepMbState("usbPlayerGainLevel", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auTyp}: func(m msg) { keepMbState("recorderFileType", m[9]) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auGai}: func(m msg) { keepMbState("recorderGainLevel", m[9]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, au_30}: func(m msg) { notImpl(m) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPNm}: func(m msg) { fmt.Printf("USB playback filename(%d)=%s\n", m[7], m[9:]) },
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, auRec, auPEx}: func(m msg) { fmt.Printf("USB playback filename extension(%d)=%s\n", m[7], name("fileExt", int(m[9]))) },
@@ -1135,5 +1137,5 @@ var actions = map[msg]func(msg){
 	// 55    AA    00    72    01    70
 	{hdr0, hdr1, hdr2, mbDRq, 0x01, hardw, hwKey}: func(m msg) { pnoKeys <- int8(m[9]) },
 	// 55    AA    00    72    01    71
-	{hdr0, hdr1, hdr2, mbDRq, 0x01, playr, 0x07}: func(m msg) { notImpl(m) },
+	{hdr0, hdr1, hdr2, mbDRq, 0x01, playr, plVol}: func(m msg) { keepMbState("usbPlayerVolume", m[9]) },
 }

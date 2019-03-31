@@ -317,7 +317,7 @@ var names = map[string][]string{
 		"ROTARY 5", // Rotary 5
 	},
 	"damperHold": {
-		"DMPR OfF", // Off
+		"DMPR OFF", // Off
 		"DMPR ON",  // On
 	},
 	"smartModeVt": {
@@ -442,8 +442,8 @@ var names = map[string][]string{
 		"HIGH",   // High
 	},
 	"wallEq": {
-		"Wall Off", // Off
-		"Wall On",  // On
+		"WALL OFF", // Off
+		"WALL ON",  // On
 	},
 	"autoPowerOff": {
 		"OFF",     // Off
@@ -471,14 +471,14 @@ var names = map[string][]string{
 		"UNMUTED", // unmuted
 	},
 	"bluetoothMidi": {
-		"BtMi OFF", // Off
-		"BtMi ON",  // On
+		"B.MIDI.OFF", // Off
+		"B.MIDI ON",  // On
 	},
 	"bluetoothAudio": {
-		"BtAu OFF", // Off
-		"BtAu ON",  // On
+		"BT.AUD.OFF", // Off
+		"BT.AUD ON",  // On
 	},
-	"midiLocalControl:": {
+	"localControl": {
 		"LOCL OFF", // Off
 		"LOCL ON",  // On
 	},
@@ -577,18 +577,26 @@ var settingTopics = map[string]string{
 	"halfPedalAdjust":         "HALF PDL",
 	"softPedalDepth":          "SOFT PDL",
 	// other settings
-	"ambienceType":  "AMB TYPE",
-	"ambienceDepth": "AMB DPTH",
-	"reverbType":    "RVB TYPE",
-	"reverbDepth":   "RVB DPTH",
-	"effectsType":   "EFF TYPE",
-	"effectsParam1": "EFF PRM1",
-	"effectsParam2": "EFF PRM2",
-	"transpose":     "TRNSPOSE",
-	// TODO: split-keyboard mode parameters still missing
+	"ambienceType":           "AMB TYPE",
+	"ambienceDepth":          "AMB DPTH",
+	"reverbType":             "RVB TYPE",
+	"reverbDepth":            "RVB DPTH",
+	"effectsType":            "EFF TYPE",
+	"effectsParam1":          "EFF PRM1",
+	"effectsParam2":          "EFF PRM2",
+	"transpose":              "TRNSPOSE",
+	"dualBalance":            "BALANCE",
+	"splitBalance":           "BALANCE",
+	"4handsBalance":          "BALANCE",
+	"dualLayerOctaveShift":   "LY OCT.SH",
+	"splitLowerOctaveShift":  "LO OCT.SH",
+	"4handsLeftOctaveShift":  "LT OCT.SH",
+	"dualDynamics":           "DYNAMICS",
+	"splitLowerPedal":        "LOWR PDL",
+	"4handsRightOctaveShift": "RT OCT.SH",
 	"tuning":                 "TUNING",
 	"damperHold":             "DMP HOLD",
-	"toneControl":            "TONE CRT",
+	"toneControl":            "TONE CTR",
 	"speakerVolume":          "SPKR VOL",
 	"lineInLevel":            "L IN VOL",
 	"wallEq":                 "WALL EQ",

@@ -13,7 +13,7 @@ var blkKey []int8 = []int8{
 	41, 43, 46, 48, 50,
 	53, 55, 58, 60, 62,
 	65, 67, 70, 72, 74,
-	77, 79, 83, 85, 86,
+	77, 79, 82, 84, 86,
 }
 
 // getPnoKey returns the number of the next key double-pressed on the piano.

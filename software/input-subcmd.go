@@ -413,9 +413,26 @@ func immediateActions() {
 func requestInitialMbData() {
 	issueDtaRq(
 		request{mainF, mTran, 0x0, 0x1, 0x0},
+		request{mainF, mTone, 0x0, 0x1, 0x0},
+		request{mainF, mSpkV, 0x0, 0x1, 0x0},
+		request{mainF, mLinV, 0x0, 0x1, 0x0},
 		request{mainF, mWall, 0x0, 0x1, 0x0},
+		request{mainF, mTung, 0x0, 0x1, 0x0},
+		request{mainF, mDpHl, 0x0, 0x1, 0x0},
 		request{mainF, mAOff, 0x0, 0x1, 0x0},
+		request{mainF, mUTon, 0x0, 0x1, 0x0},
+		request{hPhon, phShs, 0x0, 0x1, 0x0},
+		request{hPhon, phTyp, 0x0, 0x1, 0x0},
+		request{hPhon, phVol, 0x0, 0x1, 0x0},
 		request{bluet, btAuV, 0x0, 0x1, 0x0},
+		request{midiI, miCha, 0x0, 0x1, 0x0},
+		request{midiI, miLoc, 0x0, 0x1, 0x0},
+		request{midiI, miTrP, 0x0, 0x1, 0x0},
+		request{midiI, miMul, 0x0, 0x1, 0x0},
+		request{auRec, auGai, 0x0, 0x1, 0x0},
+		request{auRec, auTyp, 0x0, 0x1, 0x0},
+		request{auRec, auTrn, 0x0, 0x1, 0x0},
+		request{playr, plVol, 0x0, 0x1, 0x0},
 		request{effct, eOnOf, 0x0, 0x1, 0x0},
 		request{revrb, rOnOf, 0x0, 0x1, 0x0},
 		request{revrb, rType, 0x0, 0x1, 0x0},
@@ -423,6 +440,17 @@ func requestInitialMbData() {
 		request{revrb, rTime, 0x0, 0x1, 0x0},
 		request{pmSet, pmAmb, 0x0, 0x1, 0x0},
 		request{pmSet, pmAmD, 0x0, 0x1, 0x0},
+		request{dlSet, dlBal, 0x0, 0x1, 0x0},
+		request{dlSet, dlOcS, 0x0, 0x1, 0x0},
+		request{dlSet, dlDyn, 0x0, 0x1, 0x0},
+		request{spSet, spBal, 0x0, 0x1, 0x0},
+		request{spSet, spOcS, 0x0, 0x1, 0x0},
+		request{spSet, spPed, 0x0, 0x1, 0x0},
+		request{spSet, spSpP, 0x0, 0x1, 0x0},
+		request{h4Set, h4Bal, 0x0, 0x1, 0x0},
+		request{h4Set, h4LOS, 0x0, 0x1, 0x0},
+		request{h4Set, h4ROS, 0x0, 0x1, 0x0},
+		request{h4Set, h4SpP, 0x0, 0x1, 0x0},
 	)
 	requestAllVTSettings()
 	keepMbState("metronomeOnOff", byte(0)) // create or leave unchanged
@@ -591,11 +619,11 @@ func settings() {
 			case kbSpMSingle:
 				notifyUnlock(errorName("onlyIn2SoundModes"), 0, 1500*time.Millisecond)
 			case kbSpMDual:
-				inputSettingsValue("balance", dlSet, dlBal, 0, 16)
+				inputSettingsValue("dualBalance", dlSet, dlBal, 0, 16)
 			case kbSpMSplit:
-				inputSettingsValue("balance", spSet, spBal, 0, 16)
+				inputSettingsValue("splitBalance", spSet, spBal, 0, 16)
 			case kbSpM4hands:
-				inputSettingsValue("balance", h4Set, h4Bal, 0, 16)
+				inputSettingsValue("4handsBalance", h4Set, h4Bal, 0, 16)
 			}
 		}
 	case blkKey[9]:
@@ -606,11 +634,11 @@ func settings() {
 			case kbSpMSingle:
 				notifyUnlock(errorName("onlyIn2SoundModes"), 0, 1500*time.Millisecond)
 			case kbSpMDual:
-				inputSettingsValue("layerOctaveShift", dlSet, dlOcS, -2, 2)
+				inputSettingsValue("dualLayerOctaveShift", dlSet, dlOcS, -2, 2)
 			case kbSpMSplit:
-				inputSettingsValue("lowerOctaveShift", spSet, spOcS, 0, 3)
+				inputSettingsValue("splitLowerOctaveShift", spSet, spOcS, 0, 3)
 			case kbSpM4hands:
-				inputSettingsValue("leftOctaveShift", h4Set, h4LOS, 0, 3)
+				inputSettingsValue("4handsLeftOctaveShift", h4Set, h4LOS, 0, 3)
 			}
 		}
 	case blkKey[10]:
@@ -621,11 +649,11 @@ func settings() {
 			case kbSpMSingle:
 				notifyUnlock(errorName("onlyIn2SoundModes"), 0, 1500*time.Millisecond)
 			case kbSpMDual:
-				inputSettingsValue("dynamics", dlSet, dlDyn, 1, 10)
+				inputSettingsValue("dualDynamics", dlSet, dlDyn, 1, 10)
 			case kbSpMSplit:
-				inputSettingsValue("lowerPedal", spSet, spPed, 0, 1)
+				inputSettingsValue("splitLowerPedal", spSet, spPed, 0, 1)
 			case kbSpM4hands:
-				inputSettingsValue("rightOctaveShift", h4Set, h4ROS, -3, 0)
+				inputSettingsValue("4handsRightOctaveShift", h4Set, h4ROS, -3, 0)
 			}
 		}
 	case blkKey[11]:
@@ -755,7 +783,22 @@ func settings() {
 	case blkKey[31]:
 		inputSettingsValue("metronomeVolume", metro, mVolu, 0, 10)
 	case blkKey[32]:
-		inputSettingsValue("recorderGainLevel", auRec, auGai, 0, 15)
+		id := "recorderGainLevel"
+		lowerBound := int8(0)
+		upperBound := int8(15)
+		notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
+		time.Sleep(1500 * time.Millisecond)
+		notifyLock(scaledValue(mbStateItem(id), 0, 1, "dB"))
+		k, ok := getPnoKey()
+		kMiD := k - 42 // middle-D = 0
+		if ok && kMiD >= lowerBound && kMiD <= upperBound {
+			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
+			keepMbState(id, kMiD)
+			issueCmd(auRec, auGai, 0x0, byte(0x0), kMiD)
+			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
+		} else {
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
+		}
 	case blkKey[33]:
 		inputSettingsValue("recorderFileType", auRec, auTyp, 0, 1)
 	case blkKey[34]:
@@ -899,6 +942,7 @@ func hi() { issueCmdAc(commu, commu, 0x0, byte(0x0)) }
 
 func setLocalDefaults() {
 	issueCmd(regst, rgLoa, 0x0, byte(0)) // registration 0 serves as startup configuration
+	issueCmd(regst, rgOpn, 0x0, byte(0x1)) // trigger msg with the new currentRegistration
 	issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
 	issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
 	keepMbState("currentPianistSong", byte(0))
