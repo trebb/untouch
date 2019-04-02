@@ -509,6 +509,22 @@ func inputSettingsValue(id string, cmd byte, subCmd byte, lowerBound int8, upper
 	}
 }
 
+func inputScaledSettingsValue(id string, cmd byte, subCmd byte, lowerBound int8, upperBound int8, zero int, step float64, unit string) {
+	notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
+	time.Sleep(1500 * time.Millisecond)
+	notifyLock(scaledValue(mbStateItem(id), zero, step, unit))
+	k, ok := getPnoKey()
+	kMiD := k - 42 // middle-D = 0
+	if ok && kMiD >= lowerBound && kMiD <= upperBound {
+		notifyUnlock(scaledValue(kMiD, zero, step, unit), 0, 1500*time.Millisecond)
+		keepMbState(id, kMiD)
+		issueCmd(cmd, subCmd, 0x0, byte(0x0), kMiD)
+		issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
+	} else {
+		notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
+	}
+}
+
 func inputKeySpecificSettingsValue(id string, cmd byte, subCmd byte, lowerBound int8, upperBound int8) {
 	// notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
 	notifyLock(settingTopics[id])
@@ -690,22 +706,7 @@ func settings() {
 		if mbStateItem("toneGeneratorMode") == tgPia {
 			notifyUnlock(errorName("notInPianistMode"), 0, 1500*time.Millisecond)
 		} else {
-			id := "tuning"
-			lowerBound := int8(-26)
-			upperBound := int8(26)
-			notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
-			time.Sleep(1500 * time.Millisecond)
-			notifyLock(scaledValue(mbStateItem(id), 440, 0.5, "Hz"))
-			k, ok := getPnoKey()
-			kMiD := k - 42 // middle-D = 0
-			if ok && kMiD >= lowerBound && kMiD <= upperBound {
-				notifyUnlock(scaledValue(kMiD, 440, 0.5, "Hz"), 0, 1500*time.Millisecond)
-				keepMbState(id, kMiD)
-				issueCmd(mainF, mTung, 0x0, byte(0x0), kMiD)
-				issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
-			} else {
-				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
-			}
+			inputScaledSettingsValue("tuning", mainF, mTung, -26, 26, 440, 0.5, "Hz")
 		}
 	case blkKey[14]:
 		if mbStateItem("toneGeneratorMode") == tgPia {
@@ -719,22 +720,7 @@ func settings() {
 	case blkKey[16]:
 		inputSettingsValue("speakerVolume", mainF, mSpkV, 0, 1)
 	case blkKey[17]:
-		id := "lineInLevel"
-		lowerBound := int8(-10)
-		upperBound := int8(10)
-		notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
-		notifyLock(scaledValue(mbStateItem(id), 0, 1, "dB"))
-		k, ok := getPnoKey()
-		kMiD := k - 42 // middle-D = 0
-		if ok && kMiD >= lowerBound && kMiD <= upperBound {
-			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
-			keepMbState(id, kMiD)
-			issueCmd(mainF, mLinV, 0x0, byte(0x0), kMiD)
-			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
-		} else {
-			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
-		}
+		inputScaledSettingsValue("lineInLevel", mainF, mLinV, -10, 10, 0, 1, "dB")
 	case blkKey[18]:
 		inputSettingsValue("wallEq", mainF, mWall, 0, 1)
 	case blkKey[19]:
@@ -748,22 +734,7 @@ func settings() {
 	case blkKey[23]:
 		inputSettingsValue("bluetoothAudio", bluet, btAud, 0, 1)
 	case blkKey[24]:
-		id := "bluetoothAudioVolume"
-		lowerBound := int8(-15)
-		upperBound := int8(15)
-		notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
-		notifyLock(scaledValue(mbStateItem(id), 0, 1, "dB"))
-		k, ok := getPnoKey()
-		kMiD := k - 42 // middle-D = 0
-		if ok && kMiD >= lowerBound && kMiD <= upperBound {
-			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
-			keepMbState(id, kMiD)
-			issueCmd(bluet, btAud, 0x0, byte(0x0), kMiD)
-			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
-		} else {
-			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
-		}
+		inputScaledSettingsValue("bluetoothAudioVolume", bluet, btAud, -15, 15, 0, 1, "dB")
 	case blkKey[25]:
 		inputSettingsValue("midiChannel", midiI, miCha, 0, 15)
 	case blkKey[26]:
@@ -783,22 +754,7 @@ func settings() {
 	case blkKey[31]:
 		inputSettingsValue("metronomeVolume", metro, mVolu, 0, 10)
 	case blkKey[32]:
-		id := "recorderGainLevel"
-		lowerBound := int8(0)
-		upperBound := int8(15)
-		notifyUnlock(settingTopics[id], 0, 1500*time.Millisecond)
-		time.Sleep(1500 * time.Millisecond)
-		notifyLock(scaledValue(mbStateItem(id), 0, 1, "dB"))
-		k, ok := getPnoKey()
-		kMiD := k - 42 // middle-D = 0
-		if ok && kMiD >= lowerBound && kMiD <= upperBound {
-			notifyUnlock(scaledValue(kMiD, 0, 1, "dB"), 0, 1500*time.Millisecond)
-			keepMbState(id, kMiD)
-			issueCmd(auRec, auGai, 0x0, byte(0x0), kMiD)
-			issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode")) // necessary only in a few cases
-		} else {
-			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
-		}
+		inputScaledSettingsValue("recorderGainLevel", auRec, auGai, 0, 15, 0, 1, "dB")
 	case blkKey[33]:
 		inputSettingsValue("recorderFileType", auRec, auTyp, 0, 1)
 	case blkKey[34]:
@@ -941,7 +897,7 @@ func virtualTechnician() {
 func hi() { issueCmdAc(commu, commu, 0x0, byte(0x0)) }
 
 func setLocalDefaults() {
-	issueCmd(regst, rgLoa, 0x0, byte(0)) // registration 0 serves as startup configuration
+	issueCmd(regst, rgLoa, 0x0, byte(0))   // registration 0 serves as startup configuration
 	issueCmd(regst, rgOpn, 0x0, byte(0x1)) // trigger msg with the new currentRegistration
 	issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
 	issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
