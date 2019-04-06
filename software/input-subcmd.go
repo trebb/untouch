@@ -402,6 +402,26 @@ func immediateActions() {
 			} else {
 				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 			}
+		case blkKey[6]:
+			notifyLock("SD.PG <89")
+			k, ok := getPnoKey()
+			k1 := int(k)
+			if ok {
+				notifyUnlock(fmt.Sprintf("SENT %d", k1), 0, 1500*time.Millisecond)
+				issueCmd(midiI, miPgC, 0x0, byte(k1-1))
+			} else {
+				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
+			}
+		case blkKey[7]:
+			notifyLock("SD.PG >40")
+			k, ok := getPnoKey()
+			k40 := int(k) + 40
+			if ok {
+				notifyUnlock(fmt.Sprintf("SENT %d", k40), 0, 1500*time.Millisecond)
+				issueCmd(midiI, miPgC, 0x0, byte(k40-1))
+			} else {
+				notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
+			}
 		default:
 			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
 		}

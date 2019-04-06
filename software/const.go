@@ -184,7 +184,7 @@ const ( // (hPhon, 0x12) headphones properties
 
 const ( // (midiI, 0x13) MIDI
 	miCha byte = 0x00 // midi channel
-	miPgC byte = 0x01 // pgm change number
+	miPgC byte = 0x01 // send pgm change number
 	miLoc byte = 0x02 // local control
 	miTrP byte = 0x03 // transmit pgm change numbers
 	miMul byte = 0x04 // multi-timbral mode
