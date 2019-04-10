@@ -17,13 +17,14 @@ var buildDate string // cf. Makefile
 type msg [256]byte // Big Enough (TM)
 
 var (
-	mbPort      = flag.String("mb", "/dev/ttyUSB0", "the serial interface connected to the mainboard")
-	showVersion = flag.Bool("v", false, "print version and exit")
-	rawBytes    = make(chan byte, 1000)
-	notImplMsgs = make(chan string, 100)
-	toMb        = make(chan []byte, 100)
-	pnoKeys     = make(chan int8, 100)
-	exit        = make(chan struct{}) // program termination
+	mbPort         = flag.String("mb", "/dev/ttyUSB0", "the serial interface connected to the mainboard")
+	midiController = flag.Bool("midi", false, "turn piano into a midi controller")
+	showVersion    = flag.Bool("v", false, "print version and exit")
+	rawBytes       = make(chan byte, 1000)
+	notImplMsgs    = make(chan string, 100)
+	toMb           = make(chan []byte, 100)
+	pnoKeys        = make(chan int8, 100)
+	exit           = make(chan struct{}) // program termination
 )
 
 var seg14 display
@@ -758,7 +759,8 @@ var actions = map[msg]func(msg){
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mOnOf}: func(m msg) { keepMbState("metronomeOnOff", m[9]) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mTmpo}: func(m msg) { keepMbState("metronomeTempo", msgInt16(m[9:11])) },
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mSign}: func(m msg) { keepMbState("rhythmPattern", m[9]) },
-	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) { keepMbState("metronomeVolume", m[9]-1) }, // -1 to compensate for a mainboard bug
+	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mVolu}: func(m msg) { keepMbState("metronomeVolume", m[9]-1) },
+	// m[9]-1 to compensate for a mainboard bug (fixed in firmware v1.02g)
 	{hdr0, hdr1, hdr2, mbMsg, 0x01, metro, mBeat}: func(m msg) {
 		metronomeBeatTotal++
 		p := 8

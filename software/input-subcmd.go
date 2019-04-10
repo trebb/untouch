@@ -917,13 +917,24 @@ func virtualTechnician() {
 func hi() { issueCmdAc(commu, commu, 0x0, byte(0x0)) }
 
 func setLocalDefaults() {
-	issueCmd(regst, rgLoa, 0x0, byte(0))   // registration 0 serves as startup configuration
-	issueCmd(regst, rgOpn, 0x0, byte(0x1)) // trigger msg with the new currentRegistration
-	issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
-	issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
-	keepMbState("currentPianistSong", byte(0))
-	keepMbState("currentSoundSong", byte(0))
-	keepMbState("currentUsbSong", byte(0))
-	keepMbState("currentUsbSongType", byte(0))
-	// storeCurrentRecorderState <- idle
+	if *midiController {
+		issueCmd(midiI, miLoc, 0x0, byte(0))
+		issueCmd(midiI, miCha, 0x0, byte(0))
+		issueCmd(midiI, miMul, 0x0, byte(0))
+		issueCmd(bluet, btMid, 0x0, byte(0))
+		issueCmd(bluet, btAud, 0x0, byte(0))
+		issueCmd(kbSpl, kbSpM, 0x0, kbSpMSingle)
+		issueCmd(instr, iSing, 0x0, byte(0))
+		issueCmd(tgMod, tgMod, 0x0, tgSnd)
+	} else {
+		issueCmd(regst, rgLoa, 0x0, byte(0))   // registration 0 serves as startup configuration
+		issueCmd(regst, rgOpn, 0x0, byte(0x1)) // trigger msg with the new currentRegistration
+		issueDtaRq(request{regst, rgMod, 0, 0x1, 0x0})
+		issueCmd(tgMod, tgMod, 0x0, mbStateItem("toneGeneratorMode"))
+		keepMbState("currentPianistSong", byte(0))
+		keepMbState("currentSoundSong", byte(0))
+		keepMbState("currentUsbSong", byte(0))
+		keepMbState("currentUsbSongType", byte(0))
+		// storeCurrentRecorderState <- idle
+	}
 }

@@ -64,7 +64,11 @@ func input() {
 		if mode, ok := mbStateItemOk("serviceMode"); ok && mode == coSvc {
 			serviceModeInput(cmd)
 		} else if _, ok := mbStateItemOk("toneGeneratorMode"); ok { // normal playing mode
-			pianoModeInput(cmd)
+			if *midiController {
+				midiControllerModeInput(cmd)
+			} else {
+				pianoModeInput(cmd)
+			}
 		} else { // useful only during debugging
 			miniInput(cmd)
 		}
@@ -579,6 +583,70 @@ func pianoModeInput(cmd uiKey) {
 		}
 	default:
 		log.Printf("Pno[%X %X %X] ", cmd[0], cmd[1], cmd[2])
+	}
+}
+
+func midiControllerModeInput(cmd uiKey) {
+	switch cmd {
+	case keyG:
+	case keyG1:
+	case keyG2:
+	case keyG12:
+	case keyK:
+		notifyLock(name("midiProgram", mbStateItem("single")))
+		k, ok := getPnoKey()
+		if ok {
+			notifyUnlock(name("midiProgram", int(k-1)), 0, 1500*time.Millisecond)
+			issueCmd(instr, iSing, 0x0, k-1)
+			issueCmd(tgMod, tgMod, 0x0, tgSnd)
+			requestAllVTSettings()
+		} else {
+			notifyUnlock(errorName("cancelled"), -10, 1500*time.Millisecond)
+		}
+	case keyK1:
+	case keyK2:
+	case keyK12:
+	case keyM:
+		issueCmd(midiI, miPgC, 0x0, byte(127))
+	case keyM1:
+		issueCmd(midiI, miPgC, 0x0, byte(126))
+	case keyM2:
+		issueCmd(midiI, miPgC, 0x0, byte(125))
+	case keyM12:
+	case keyP:
+		issueCmd(midiI, miPgC, 0x0, byte(124))
+	case keyP1:
+		issueCmd(midiI, miPgC, 0x0, byte(123))
+	case keyP2:
+		issueCmd(midiI, miPgC, 0x0, byte(122))
+	case keyP12:
+		issueCmd(midiI, miPgC, 0x0, byte(121))
+	case keyR:
+		issueCmd(midiI, miPgC, 0x0, byte(120))
+	case keyR1:
+		issueCmd(midiI, miPgC, 0x0, byte(119))
+	case keyR2:
+		issueCmd(midiI, miPgC, 0x0, byte(118))
+	case keyR12:
+		issueCmd(midiI, miPgC, 0x0, byte(117))
+	case keyS:
+		settings()
+	case keyS1:
+	case keyS2:
+	case keyS12:
+	case keyX:
+		immediateActions()
+	case keyX1:
+	case keyX2:
+	case keyX12:
+	case keyESC:
+		select {
+		case <-exit:
+		default:
+			close(exit) // for debugging
+		}
+	default:
+		log.Printf("Mid[%X %X %X] ", cmd[0], cmd[1], cmd[2])
 	}
 }
 
